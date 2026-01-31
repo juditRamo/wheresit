@@ -1,0 +1,3 @@
+# Edge Function: skip gateway JWT verification; we validate inside the function with getUser(jwt)
+[functions.chat]
+verify_jwt = false
