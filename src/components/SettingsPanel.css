@@ -1,0 +1,245 @@
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes settingsFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.settings-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 300px;
+  max-width: 85vw;
+  background: var(--bg-card);
+  border-left: 1px solid var(--border-dark);
+  z-index: 101;
+  display: flex;
+  flex-direction: column;
+  animation: slideInRight 0.25s ease;
+  overflow-y: auto;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.settings-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.settings-panel__title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.settings-panel__close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  border-radius: 50%;
+}
+
+.settings-panel__close:hover {
+  background: var(--border-dark);
+}
+
+.settings-panel__section {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.settings-panel__section-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 12px;
+}
+
+.settings-panel__household-name {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gold-primary);
+  margin: 0 0 4px;
+}
+
+.settings-panel__household-id {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  font-family: monospace;
+  word-break: break-all;
+}
+
+/* Members list */
+.settings-panel__member {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+}
+
+.settings-panel__member-email {
+  font-size: 12px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+}
+
+.settings-panel__member-role {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--gold-primary);
+  background: rgba(201, 169, 98, 0.1);
+  border: 1px solid rgba(201, 169, 98, 0.25);
+  border-radius: 8px;
+  padding: 2px 8px;
+}
+
+/* Invite code */
+.settings-panel__code-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.settings-panel__code {
+  flex: 1;
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border: 1px solid var(--border-dark);
+  border-radius: 6px;
+  padding: 8px 10px;
+  word-break: break-all;
+}
+
+.settings-panel__copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gold-primary);
+  background: rgba(201, 169, 98, 0.1);
+  border: 1px solid var(--gold-primary);
+  border-radius: 6px;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.settings-panel__copy-btn:hover {
+  background: rgba(201, 169, 98, 0.2);
+}
+
+/* Language toggle */
+.settings-panel__lang-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.settings-panel__lang-btn {
+  flex: 1;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border-dark);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+}
+
+.settings-panel__lang-btn--active {
+  color: var(--gold-primary);
+  border-color: var(--gold-primary);
+  background: rgba(201, 169, 98, 0.1);
+}
+
+/* Household select */
+.settings-panel__select {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-dark);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--text-primary);
+  appearance: none;
+}
+
+/* Manage locations */
+.settings-panel__manage-locations {
+  width: 100%;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gold-primary);
+  background: rgba(201, 169, 98, 0.08);
+  border: 1px solid var(--gold-border);
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+
+.settings-panel__manage-locations:hover {
+  background: rgba(201, 169, 98, 0.15);
+}
+
+/* Sign out */
+.settings-panel__signout {
+  width: 100%;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e57373;
+  background: rgba(229, 115, 115, 0.08);
+  border: 1px solid rgba(229, 115, 115, 0.2);
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+
+.settings-panel__signout:hover {
+  background: rgba(229, 115, 115, 0.15);
+}
+
+@media (min-width: 1024px) {
+  .settings-panel {
+    width: 360px;
+  }
+}

@@ -1,0 +1,209 @@
+.edit-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.edit-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-dark);
+  border-radius: 16px 16px 0 0;
+  z-index: 101;
+  animation: slideUp 0.25s ease;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.edit-sheet__handle {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 4px;
+}
+
+.edit-sheet__handle-bar {
+  width: 36px;
+  height: 4px;
+  background: var(--border-light);
+  border-radius: 2px;
+}
+
+.edit-sheet__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 20px 16px;
+}
+
+.edit-sheet__title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.edit-sheet__close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  border-radius: 50%;
+}
+
+.edit-sheet__close:hover {
+  background: var(--border-dark);
+}
+
+.edit-sheet__form {
+  padding: 0 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.edit-sheet__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.edit-sheet__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.edit-sheet__input {
+  height: 44px;
+  padding: 0 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-dark);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.edit-sheet__input:focus {
+  border-color: var(--gold-primary);
+}
+
+.edit-sheet__input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.edit-sheet__select {
+  height: 44px;
+  padding: 0 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-dark);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%238A7D6B' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+
+.edit-sheet__select:focus {
+  border-color: var(--gold-primary);
+}
+
+.edit-sheet__actions {
+  display: flex;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-dark);
+}
+
+.edit-sheet__btn {
+  flex: 1;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: opacity 0.15s;
+}
+
+.edit-sheet__btn--primary {
+  background: var(--gold-primary);
+  color: var(--text-on-gold);
+}
+
+.edit-sheet__btn--primary:hover {
+  opacity: 0.9;
+}
+
+.edit-sheet__btn--danger {
+  background: rgba(229, 115, 115, 0.1);
+  color: #e57373;
+  border: 1px solid rgba(229, 115, 115, 0.25);
+}
+
+.edit-sheet__btn--danger:hover {
+  background: rgba(229, 115, 115, 0.2);
+}
+
+.edit-sheet__btn--secondary {
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-dark);
+}
+
+/* Delete confirmation dialog */
+.edit-sheet__confirm {
+  padding: 20px;
+  text-align: center;
+}
+
+.edit-sheet__confirm-text {
+  font-size: 14px;
+  color: var(--text-primary);
+  margin: 0 0 20px;
+}
+
+.edit-sheet__confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+
+@media (min-width: 1024px) {
+  .edit-sheet {
+    max-width: 520px;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: slideUpDesktop 0.25s ease;
+  }
+
+  @keyframes slideUpDesktop {
+    from { transform: translateX(-50%) translateY(100%); }
+    to { transform: translateX(-50%) translateY(0); }
+  }
+}
