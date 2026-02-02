@@ -1,4 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import {
+  ROOM_KEYS, SPOT_KEYS, SPOT_DETAIL_KEYS, CATEGORY_KEYS,
+  buildLocationString, roomLabel, spotLabel,
+  isCustomRoom, isCustomSpot, isCustomDetail,
+} from './picklists.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,10 +14,41 @@ function normalizeItem(s: string): string {
   return s.toLowerCase().trim().replace(/\s+/g, ' ')
 }
 
+type Lang = 'en' | 'es'
+
+interface NewTag {
+  type: 'room' | 'spot' | 'detail'
+  key: string
+  label: string
+}
+
+interface QueryResult {
+  item_name: string
+  room_key: string | null
+  spot_key: string | null
+  spot_detail: string | null
+  location_description: string
+}
+
+interface PendingUpdate {
+  entryId: string
+  oldLocation: string
+  newLocation: string
+  item_name: string
+  room_key: string
+  spot_key?: string
+  spot_detail?: string
+  category_key?: string
+}
+
 interface LLMIntent {
   intent: 'STORE' | 'QUERY' | 'OTHER'
+  language: Lang
   item_name?: string
-  location_description?: string
+  room_key?: string
+  spot_key?: string
+  spot_detail?: string
+  category_key?: string
   query_item?: string
 }
 
@@ -30,7 +66,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    const { message, householdId } = (await req.json()) as { message?: string; householdId?: string }
+    const { message, householdId, confirm } = (await req.json()) as { message?: string; householdId?: string; confirm?: boolean }
     if (!message || typeof message !== 'string' || !householdId || typeof householdId !== 'string') {
       return new Response(
         JSON.stringify({ error: 'Missing message or householdId' }),
@@ -75,14 +111,45 @@ Deno.serve(async (req) => {
       )
     }
 
-    let intentResult: LLMIntent = { intent: 'OTHER' }
+    let intentResult: LLMIntent = { intent: 'OTHER', language: 'en' }
 
     if (geminiKey) {
-      const systemPrompt = `You are a helpful assistant that helps users remember where they store things at home.
-Classify the user message into exactly one intent and respond with a JSON object only (no markdown, no extra text):
-- STORE: User is telling you where they put something. Extract item_name and location_description. Example: "I put the keys in the drawer" -> {"intent":"STORE","item_name":"keys","location_description":"the drawer"}
-- QUERY: User is asking where something is. Extract the item they're asking about as query_item. Example: "Where are the keys?" -> {"intent":"QUERY","query_item":"keys"}
-- OTHER: Small talk, unclear, or not about storing/finding things. Respond with {"intent":"OTHER"}
+      const systemPrompt = `You are a helpful butler that helps users remember where they store things at home.
+You MUST respond with a JSON object only (no markdown, no extra text).
+
+**Language detection**: Detect whether the user is writing in English or Spanish.
+Set "language" to "en" or "es" accordingly.
+
+**Intent classification**: Classify the message into one of:
+- STORE: User is telling you where they put something.
+- QUERY: User is asking where something is.
+- OTHER: Small talk, unclear, or not about storing/finding things.
+
+**For STORE intents**, extract structured picklist keys:
+- "item_name": the item being stored (use the user's words)
+- "room_key": pick from [${ROOM_KEYS.join(', ')}] or use the user's custom text if none match
+- "spot_key": pick from [${SPOT_KEYS.join(', ')}] or use custom text. Optional.
+- "spot_detail": pick from [${SPOT_DETAIL_KEYS.join(', ')}] or use custom text. Optional.
+- "category_key": infer from context, pick from [${CATEGORY_KEYS.join(', ')}]. Optional.
+
+**For QUERY intents**, extract:
+- "query_item": the item the user is asking about
+
+Examples:
+User (en): "I put the passport in the bedroom dresser top drawer"
+-> {"intent":"STORE","language":"en","item_name":"passport","room_key":"bedroom","spot_key":"dresser","spot_detail":"top_drawer","category_key":"travel"}
+
+User (es): "Dejé las llaves en la cocina, sobre la encimera"
+-> {"intent":"STORE","language":"es","item_name":"llaves","room_key":"kitchen","spot_key":"counter","spot_detail":"on_top"}
+
+User (en): "Where are my keys?"
+-> {"intent":"QUERY","language":"en","query_item":"keys"}
+
+User (es): "¿Dónde está el pasaporte?"
+-> {"intent":"QUERY","language":"es","query_item":"pasaporte"}
+
+User: "Hello"
+-> {"intent":"OTHER","language":"en"}
 
 Always respond with valid JSON only.`
 
@@ -114,85 +181,298 @@ Always respond with valid JSON only.`
         const jsonMatch = text.match(/\{[\s\S]*\}/)
         if (jsonMatch) {
           try {
-            intentResult = JSON.parse(jsonMatch[0]) as LLMIntent
+            const parsed = JSON.parse(jsonMatch[0])
+            intentResult = {
+              intent: parsed.intent ?? 'OTHER',
+              language: parsed.language === 'es' ? 'es' : 'en',
+              item_name: parsed.item_name,
+              room_key: parsed.room_key,
+              spot_key: parsed.spot_key,
+              spot_detail: parsed.spot_detail,
+              category_key: parsed.category_key,
+              query_item: parsed.query_item,
+            }
           } catch {
-            intentResult = { intent: 'OTHER' }
+            intentResult = { intent: 'OTHER', language: 'en' }
           }
         }
       }
     } else {
+      // Regex fallback — EN and ES patterns
       const lower = message.toLowerCase()
-      const storeMatch = lower.match(/(?:put|placed|stored|left)\s+(?:the\s+)?(.+?)\s+(?:in|on|under|by)\s+(.+)/)
+
+      // Detect language
+      const isSpanish = /(?:dejé|guardé|puse|dónde|está|están|por favor|tengo|las?|los?|el\s|en\s(?:el|la|los|las))/.test(lower)
+      const lang: Lang = isSpanish ? 'es' : 'en'
+
+      // EN store patterns
+      const storeMatchEn = lower.match(/(?:put|placed|stored|left)\s+(?:the\s+)?(.+?)\s+(?:in|on|under|by|at)\s+(?:the\s+)?(.+)/)
+      // ES store patterns
+      const storeMatchEs = lower.match(/(?:dejé|guardé|puse|metí|coloqué)\s+(?:el|la|los|las|mi|mis)?\s*(.+?)\s+(?:en|sobre|bajo|debajo\s+de)\s+(?:el|la|los|las)?\s*(.+)/)
+
+      const storeMatch = storeMatchEn || storeMatchEs
+
       if (storeMatch) {
         intentResult = {
           intent: 'STORE',
+          language: lang,
           item_name: storeMatch[1].trim(),
-          location_description: storeMatch[2].trim(),
+          room_key: storeMatch[2].trim(),
         }
-      } else if (/\bwhere\s+(?:is|are)\s+(?:the\s+)?(.+?)\??$/.test(lower) || /^(.+?)\s+\?\s*$/.test(lower)) {
-        const q = lower.replace(/\bwhere\s+(?:is|are)\s+(?:the\s+)?/i, '').replace(/\?+\s*$/, '').trim()
-        if (q) intentResult = { intent: 'QUERY', query_item: q }
+      } else {
+        // EN query patterns
+        const queryMatchEn = lower.match(/\bwhere\s+(?:is|are)\s+(?:the\s+|my\s+)?(.+?)\??$/)
+        // ES query patterns
+        const queryMatchEs = lower.match(/(?:dónde|donde)\s+(?:está|están|dejé|guardé|puse)\s+(?:el|la|los|las|mi|mis)?\s*(.+?)\??$/)
+
+        const queryMatch = queryMatchEn || queryMatchEs
+        if (queryMatch) {
+          const q = queryMatch[1].trim()
+          if (q) intentResult = { intent: 'QUERY', language: lang, query_item: q }
+        } else {
+          intentResult = { intent: 'OTHER', language: lang }
+        }
       }
     }
 
+    const lang = intentResult.language
     let reply: string
+    let locationRef: { room_key: string; spot_key?: string } | undefined
+    let newTags: NewTag[] | undefined
+    let queryResults: QueryResult[] | undefined
+    let pendingUpdate: PendingUpdate | undefined
 
-    if (intentResult.intent === 'STORE' && intentResult.item_name && intentResult.location_description) {
+    if (intentResult.intent === 'STORE' && intentResult.item_name && intentResult.room_key) {
       const itemName = normalizeItem(intentResult.item_name)
-      const location = intentResult.location_description.trim()
+      const locationDesc = buildLocationString(
+        intentResult.room_key,
+        intentResult.spot_key,
+        intentResult.spot_detail,
+        'en' // always store English for location_description column
+      )
+
+      const translatedLocation = buildLocationString(
+        intentResult.room_key,
+        intentResult.spot_key,
+        intentResult.spot_detail,
+        lang
+      )
+
+      const writeData = {
+        location_description: locationDesc,
+        room_key: intentResult.room_key,
+        spot_key: intentResult.spot_key ?? null,
+        spot_detail: intentResult.spot_detail ?? null,
+        category_key: intentResult.category_key ?? null,
+        updated_at: new Date().toISOString(),
+        created_by: user.id,
+      }
 
       const { data: existing } = await supabase
         .from('storage_entries')
-        .select('id')
+        .select('id, room_key, spot_key, spot_detail, location_description')
         .eq('household_id', householdId)
         .ilike('item_name', itemName)
         .limit(1)
         .maybeSingle()
 
+      // Overwrite confirmation: if item exists with different location and confirm not set
+      if (existing && !confirm) {
+        const oldLocation = buildLocationString(
+          existing.room_key,
+          existing.spot_key,
+          existing.spot_detail,
+          lang
+        ) || existing.location_description
+
+        // Check if location actually changed
+        const newLoc = translatedLocation
+        if (oldLocation !== newLoc) {
+          reply = lang === 'es'
+            ? `${intentResult.item_name} está actualmente en ${oldLocation}. ¿Mover a ${newLoc}?`
+            : `${intentResult.item_name} is currently in ${oldLocation}. Move to ${newLoc}?`
+
+          pendingUpdate = {
+            entryId: existing.id,
+            oldLocation,
+            newLocation: newLoc,
+            item_name: intentResult.item_name,
+            room_key: intentResult.room_key,
+            spot_key: intentResult.spot_key,
+            spot_detail: intentResult.spot_detail,
+            category_key: intentResult.category_key,
+          }
+
+          return new Response(JSON.stringify({ reply, language: lang, pendingUpdate }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+      }
+
+      // Proceed with the write
+      let dbError = false
       if (existing) {
+        // Snapshot current location into location_history before updating
+        try {
+          await supabase.from('location_history').insert({
+            entry_id: existing.id,
+            household_id: householdId,
+            room_key: existing.room_key,
+            spot_key: existing.spot_key,
+            spot_detail: existing.spot_detail,
+            location_description: existing.location_description,
+            moved_by: user.id,
+          })
+        } catch {
+          // Non-critical: don't fail the store if history insert fails
+        }
+
         const { error: updateErr } = await supabase
           .from('storage_entries')
-          .update({
-            location_description: location,
-            updated_at: new Date().toISOString(),
-            created_by: user.id,
-          })
+          .update(writeData)
           .eq('id', existing.id)
-
-        if (updateErr) reply = "I couldn't save that. Please try again."
-        else reply = `Got it, I'll remember that ${intentResult.item_name} is in ${location}.`
+        if (updateErr) dbError = true
       } else {
-        const { error: insertErr } = await supabase.from('storage_entries').insert({
-          household_id: householdId,
-          item_name: itemName,
-          location_description: location,
-          created_by: user.id,
-        })
+        const { error: insertErr } = await supabase
+          .from('storage_entries')
+          .insert({
+            household_id: householdId,
+            item_name: itemName,
+            ...writeData,
+          })
+        if (insertErr) dbError = true
+      }
 
-        if (insertErr) reply = "I couldn't save that. Please try again."
-        else reply = `Got it, I'll remember that ${intentResult.item_name} is in ${location}.`
+      if (dbError) {
+        reply = lang === 'es'
+          ? 'No pude guardar eso. Por favor, inténtelo de nuevo.'
+          : "I couldn't save that. Please try again."
+      } else {
+        reply = lang === 'es'
+          ? `Entendido, recordaré que ${intentResult.item_name} está en ${translatedLocation}.`
+          : `Got it, I'll remember that ${intentResult.item_name} is in ${translatedLocation}.`
+
+        locationRef = {
+          room_key: intentResult.room_key,
+          ...(intentResult.spot_key ? { spot_key: intentResult.spot_key } : {}),
+        }
+
+        // Detect custom (non-picklist) location values
+        const candidates: NewTag[] = []
+        if (isCustomRoom(intentResult.room_key)) {
+          candidates.push({ type: 'room', key: intentResult.room_key, label: intentResult.room_key })
+        }
+        if (isCustomSpot(intentResult.spot_key)) {
+          candidates.push({ type: 'spot', key: intentResult.spot_key!, label: intentResult.spot_key! })
+        }
+        if (isCustomDetail(intentResult.spot_detail)) {
+          candidates.push({ type: 'detail', key: intentResult.spot_detail!, label: intentResult.spot_detail! })
+        }
+
+        if (candidates.length > 0) {
+          // Filter out tags already saved for this household
+          const { data: savedTags } = await supabase
+            .from('household_tags')
+            .select('tag_type, tag_key')
+            .eq('household_id', householdId)
+
+          const savedSet = new Set(
+            (savedTags ?? []).map((t: { tag_type: string; tag_key: string }) => `${t.tag_type}:${t.tag_key}`)
+          )
+          const unsaved = candidates.filter((c) => !savedSet.has(`${c.type}:${c.key}`))
+          if (unsaved.length > 0) {
+            newTags = unsaved
+          }
+        }
       }
     } else if (intentResult.intent === 'QUERY' && intentResult.query_item) {
       const search = normalizeItem(intentResult.query_item)
       const { data: rows } = await supabase
         .from('storage_entries')
-        .select('item_name, location_description')
+        .select('id, item_name, location_description, room_key, spot_key, spot_detail')
         .eq('household_id', householdId)
         .ilike('item_name', `%${search}%`)
         .order('updated_at', { ascending: false })
-        .limit(1)
+        .limit(5)
 
-      if (rows?.length) {
-        reply = `${rows[0].item_name} is in ${rows[0].location_description}.`
+      if (rows && rows.length > 0) {
+        // Build query results array
+        queryResults = rows.map((row: { item_name: string; room_key: string | null; spot_key: string | null; spot_detail: string | null; location_description: string }) => ({
+          item_name: row.item_name,
+          room_key: row.room_key,
+          spot_key: row.spot_key,
+          spot_detail: row.spot_detail,
+          location_description: row.location_description,
+        }))
+
+        if (rows.length === 1) {
+          const row = rows[0]
+          const translatedLocation = row.room_key
+            ? buildLocationString(row.room_key, row.spot_key, row.spot_detail, lang)
+            : row.location_description
+
+          // Fetch location history for "previously" note
+          let previousNote = ''
+          try {
+            const { data: history } = await supabase
+              .from('location_history')
+              .select('room_key, spot_key, spot_detail, location_description')
+              .eq('entry_id', row.id)
+              .order('moved_at', { ascending: false })
+              .limit(1)
+
+            if (history && history.length > 0) {
+              const prev = history[0]
+              const prevLocation = prev.room_key
+                ? buildLocationString(prev.room_key, prev.spot_key, prev.spot_detail, lang)
+                : prev.location_description
+              previousNote = lang === 'es'
+                ? ` (Anteriormente: ${prevLocation})`
+                : ` (Previously: ${prevLocation})`
+            }
+          } catch {
+            // Non-critical
+          }
+
+          reply = lang === 'es'
+            ? `${row.item_name} está en ${translatedLocation}.${previousNote}`
+            : `${row.item_name} is in ${translatedLocation}.${previousNote}`
+
+          locationRef = {
+            room_key: row.room_key ?? row.location_description,
+            ...(row.spot_key ? { spot_key: row.spot_key } : {}),
+          }
+        } else {
+          // Multiple results
+          const lines = rows.map((row: { item_name: string; room_key: string | null; spot_key: string | null; spot_detail: string | null; location_description: string }) => {
+            const loc = row.room_key
+              ? buildLocationString(row.room_key, row.spot_key, row.spot_detail, lang)
+              : row.location_description
+            return `- **${row.item_name}** → ${loc}`
+          })
+
+          const countLabel = lang === 'es' ? `Encontré ${rows.length} coincidencias:` : `I found ${rows.length} matches:`
+          reply = `${countLabel}\n${lines.join('\n')}`
+
+          // Use first result for locationRef
+          const first = rows[0]
+          locationRef = {
+            room_key: first.room_key ?? first.location_description,
+            ...(first.spot_key ? { spot_key: first.spot_key } : {}),
+          }
+        }
       } else {
-        reply = "I don't have a stored place for that."
+        reply = lang === 'es'
+          ? 'No tengo registrado un lugar para eso.'
+          : "I don't have a stored place for that."
       }
     } else {
-      reply =
-        "I can remember where you put things or tell you where something is. Try: “Keys are in the drawer” or “Where are the keys?”"
+      reply = lang === 'es'
+        ? 'Puedo recordar dónde guardas las cosas o decirte dónde está algo. Prueba: "Las llaves están en el cajón" o "¿Dónde están las llaves?"'
+        : 'I can remember where you put things or tell you where something is. Try: "Keys are in the drawer" or "Where are the keys?"'
     }
 
-    return new Response(JSON.stringify({ reply }), {
+    return new Response(JSON.stringify({ reply, language: lang, locationRef, newTags, queryResults, pendingUpdate }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {

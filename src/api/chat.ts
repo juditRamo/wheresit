@@ -1,9 +1,19 @@
 import { supabase } from '../supabaseClient'
+import type { LocationRef, NewTag, QueryResult, PendingUpdate } from '../types'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-export async function sendChatMessage(message: string, householdId: string): Promise<{ reply: string }> {
+export interface ChatResponse {
+  reply: string
+  language: 'en' | 'es'
+  locationRef?: LocationRef
+  newTags?: NewTag[]
+  queryResults?: QueryResult[]
+  pendingUpdate?: PendingUpdate
+}
+
+export async function sendChatMessage(message: string, householdId: string, confirm?: boolean): Promise<ChatResponse> {
   const { data: { session }, error: sessionError } = await supabase.auth.getSession()
   if (sessionError || !session?.access_token) {
     throw new Error('Not signed in')
@@ -16,6 +26,9 @@ export async function sendChatMessage(message: string, householdId: string): Pro
   }
 
   const url = `${supabaseUrl}/functions/v1/chat`
+  const body: Record<string, unknown> = { message, householdId }
+  if (confirm) body.confirm = true
+
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -23,12 +36,19 @@ export async function sendChatMessage(message: string, householdId: string): Pro
       Authorization: `Bearer ${token}`,
       apikey: supabaseAnonKey,
     },
-    body: JSON.stringify({ message, householdId }),
+    body: JSON.stringify(body),
   })
 
-  const body = await res.json()
+  const resBody = await res.json()
   if (!res.ok) {
-    throw new Error(body.error ?? body.reply ?? 'Request failed')
+    throw new Error(resBody.error ?? resBody.reply ?? 'Request failed')
   }
-  return { reply: body.reply ?? '' }
+  return {
+    reply: resBody.reply ?? '',
+    language: resBody.language === 'es' ? 'es' : 'en',
+    locationRef: resBody.locationRef,
+    newTags: resBody.newTags,
+    queryResults: resBody.queryResults,
+    pendingUpdate: resBody.pendingUpdate,
+  }
 }

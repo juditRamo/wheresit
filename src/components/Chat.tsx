@@ -1,28 +1,67 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { Mic, Send } from 'lucide-react'
 import { MessageList } from './MessageList'
 import { sendChatMessage } from '../api/chat'
 import { useStoredItems } from '../hooks/useStoredItems'
-import type { ChatMessage } from '../types'
+import { useHouseholdTags } from '../hooks/useHouseholdTags'
+import { useLanguage } from '../i18n/LanguageContext'
+import { ui } from '../i18n/ui'
+import type { ChatMessage, LocationRef, NewTag, PendingUpdate } from '../types'
 import './Chat.css'
 
 interface ChatProps {
   householdId: string
+  onNavigateToItems: (filter: LocationRef) => void
 }
 
 function genId() {
   return crypto.randomUUID?.() ?? `msg-${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
-export function Chat({ householdId }: ChatProps) {
+// Web Speech API types
+interface SpeechRecognitionEvent {
+  results: { [index: number]: { [index: number]: { transcript: string } } }
+}
+
+interface SpeechRecognitionErrorEvent {
+  error: string
+}
+
+type SpeechRecognitionInstance = {
+  lang: string
+  interimResults: boolean
+  continuous: boolean
+  start: () => void
+  stop: () => void
+  onresult: ((e: SpeechRecognitionEvent) => void) | null
+  onerror: ((e: SpeechRecognitionErrorEvent) => void) | null
+  onend: (() => void) | null
+}
+
+function getSpeechRecognition(): (new () => SpeechRecognitionInstance) | null {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const w = window as any
+  return w.SpeechRecognition || w.webkitSpeechRecognition || null
+}
+
+export function Chat({ householdId, onNavigateToItems }: ChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isRecording, setIsRecording] = useState(false)
   const listRef = useRef<HTMLDivElement>(null)
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null)
   const { items: storedItems, refetch: refetchStoredItems } = useStoredItems(householdId)
+  const { saveTag } = useHouseholdTags(householdId)
+  const { language, setLanguage } = useLanguage()
 
-  const showSuggestions = storedItems.length > 0 && (input === '' || /^where\s*(is|are)?\s*/i.test(input.trim()))
-  const suggestionQuery = input.trim().replace(/^where\s*(is|are)?\s*/i, '').toLowerCase()
+  const suggestionPrefix = ui('chat.suggestion_prefix', language)
+  const showSuggestions = storedItems.length > 0 && (input === '' || /^(?:where\s*(is|are)?\s*|(?:d[oó]nde)\s*(?:est[aá]|est[aá]n|dej[eé]|guard[eé]|puse)?\s*)/i.test(input.trim()))
+  const suggestionQuery = input.trim()
+    .replace(/^where\s*(is|are)?\s*/i, '')
+    .replace(/^(?:d[oó]nde)\s*(?:est[aá]|est[aá]n|dej[eé]|guard[eé]|puse)?\s*/i, '')
+    .toLowerCase()
   const suggestedItems = showSuggestions
     ? storedItems.filter((name) => !suggestionQuery || name.toLowerCase().includes(suggestionQuery)).slice(0, 6)
     : []
@@ -35,34 +74,56 @@ export function Chat({ householdId }: ChatProps) {
     e.preventDefault()
     const text = input.trim()
     if (!text || loading) return
+    await sendMessage(text)
+  }
 
+  async function sendMessage(text: string, confirm?: boolean) {
     setInput('')
     setError(null)
-    const userMessage: ChatMessage = {
-      id: genId(),
-      role: 'user',
-      content: text,
-      createdAt: new Date(),
+
+    if (!confirm) {
+      const userMessage: ChatMessage = {
+        id: genId(),
+        role: 'user',
+        content: text,
+        createdAt: new Date(),
+      }
+      setMessages((prev) => [...prev, userMessage])
     }
-    setMessages((prev) => [...prev, userMessage])
     setLoading(true)
 
     try {
-      const { reply } = await sendChatMessage(text, householdId)
+      const response = await sendChatMessage(text, householdId, confirm)
+      setLanguage(response.language)
       refetchStoredItems()
-      const assistantMessage: ChatMessage = {
-        id: genId(),
-        role: 'assistant',
-        content: reply,
-        createdAt: new Date(),
+
+      if (response.pendingUpdate) {
+        const assistantMessage: ChatMessage = {
+          id: genId(),
+          role: 'assistant',
+          content: response.reply,
+          createdAt: new Date(),
+          pendingUpdate: response.pendingUpdate,
+        }
+        setMessages((prev) => [...prev, assistantMessage])
+      } else {
+        const assistantMessage: ChatMessage = {
+          id: genId(),
+          role: 'assistant',
+          content: response.reply,
+          createdAt: new Date(),
+          locationRef: response.locationRef,
+          newTags: response.newTags,
+          queryResults: response.queryResults,
+        }
+        setMessages((prev) => [...prev, assistantMessage])
       }
-      setMessages((prev) => [...prev, assistantMessage])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       const errMessage: ChatMessage = {
         id: genId(),
         role: 'assistant',
-        content: "I couldn't process that. Please try again.",
+        content: ui('chat.error_apology', language),
         createdAt: new Date(),
       }
       setMessages((prev) => [...prev, errMessage])
@@ -71,21 +132,84 @@ export function Chat({ householdId }: ChatProps) {
     }
   }
 
+  const handleConfirm = useCallback(async (pending: PendingUpdate) => {
+    // Re-send the store command with confirm flag
+    const text = `${pending.item_name} in ${pending.newLocation}`
+    await sendMessage(text, true)
+    // Remove the pending message
+    setMessages((prev) => prev.filter((m) => !m.pendingUpdate || m.pendingUpdate.entryId !== pending.entryId))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [householdId])
+
+  const handleCancelPending = useCallback((pending: PendingUpdate) => {
+    setMessages((prev) => prev.filter((m) => !m.pendingUpdate || m.pendingUpdate.entryId !== pending.entryId))
+  }, [])
+
+  // Voice input
+  function handleMicClick() {
+    const SpeechRecognition = getSpeechRecognition()
+    if (!SpeechRecognition) {
+      setError(ui('voice.not_supported', language))
+      return
+    }
+
+    if (isRecording && recognitionRef.current) {
+      recognitionRef.current.stop()
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+    recognition.lang = language === 'es' ? 'es-ES' : 'en-US'
+    recognition.interimResults = false
+    recognition.continuous = false
+    recognitionRef.current = recognition
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = event.results[0][0].transcript
+      setInput(transcript)
+    }
+
+    recognition.onerror = () => {
+      setIsRecording(false)
+    }
+
+    recognition.onend = () => {
+      setIsRecording(false)
+    }
+
+    setIsRecording(true)
+    recognition.start()
+  }
+
   return (
     <div className="chat">
       <div className="chat__messages" ref={listRef}>
-        <MessageList messages={messages} />
+        <MessageList
+          messages={messages}
+          onLocationClick={onNavigateToItems}
+          onSaveTag={(tag: NewTag) => saveTag({ tag_type: tag.type, tag_key: tag.key, label: tag.label })}
+          onConfirmPending={handleConfirm}
+          onCancelPending={handleCancelPending}
+        />
       </div>
       {error && (
         <div className="chat__error" role="alert">
           {error}
         </div>
       )}
-      <form onSubmit={handleSubmit} className="chat__form">
+      <form onSubmit={handleSubmit} className="chat__input-bar">
+        <button
+          type="button"
+          className={`chat__mic-btn ${isRecording ? 'chat__mic-btn--recording' : ''}`}
+          aria-label="Voice input"
+          onClick={handleMicClick}
+        >
+          <Mic size={20} color="var(--cream)" />
+        </button>
         <div className="chat__input-wrap">
           <input
             type="text"
-            placeholder="Where did you put something? Or ask where something is…"
+            placeholder={isRecording ? ui('voice.listening', language) : ui('chat.placeholder', language)}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={loading}
@@ -101,17 +225,22 @@ export function Chat({ householdId }: ChatProps) {
                   className="chat__suggestion"
                   onMouseDown={(e) => {
                     e.preventDefault()
-                    setInput(`Where is ${name}?`)
+                    setInput(language === 'es' ? `¿${suggestionPrefix} ${name}?` : `${suggestionPrefix} ${name}?`)
                   }}
                 >
-                  Where is {name}?
+                  {language === 'es' ? `¿${suggestionPrefix} ${name}?` : `${suggestionPrefix} ${name}?`}
                 </li>
               ))}
             </ul>
           )}
         </div>
-        <button type="submit" disabled={loading || !input.trim()}>
-          {loading ? '…' : 'Send'}
+        <button
+          type="submit"
+          disabled={loading || !input.trim()}
+          className="chat__send-btn"
+          aria-label="Send message"
+        >
+          <Send size={18} color="var(--text-on-gold)" />
         </button>
       </form>
     </div>

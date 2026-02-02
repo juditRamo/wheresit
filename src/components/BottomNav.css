@@ -1,0 +1,33 @@
+.bottom-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  height: 64px;
+  background: var(--bg-sidebar);
+  border-top: 1px solid var(--border-dark);
+  flex-shrink: 0;
+}
+
+.bottom-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  transition: color 0.15s;
+}
+
+.bottom-nav__item--active {
+  color: var(--gold-primary);
+}
+
+.bottom-nav__label {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+@media (min-width: 1024px) {
+  .bottom-nav {
+    display: none;
+  }
+}
