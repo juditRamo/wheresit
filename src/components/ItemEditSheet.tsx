@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { X, Trash2, Save } from 'lucide-react'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
-import { ROOMS, SPOTS, SPOT_DETAILS, CATEGORIES, t } from '../i18n/picklists'
-import type { StorageEntry, HouseholdTag } from '../types'
+import { CATEGORIES, t } from '../i18n/picklists'
+import type { StorageEntry } from '../types'
+import { usePlaces } from '../hooks/usePlaces'
 import { PhotoUpload } from './PhotoUpload'
 import './ItemEditSheet.css'
 
@@ -11,7 +12,6 @@ interface ItemEditSheetProps {
   mode: 'create' | 'edit'
   entry?: StorageEntry | null
   householdId: string
-  householdTags: HouseholdTag[]
   onSave: (data: {
     item_name: string
     room_key: string | null
@@ -20,52 +20,46 @@ interface ItemEditSheetProps {
     category_key: string | null
     location_description: string
     photo_path?: string | null
+    place_id?: string | null
   }) => void
   onDelete?: () => void
   onClose: () => void
 }
 
-function buildLocationDesc(roomKey: string | null, spotKey: string | null, detailKey: string | null): string {
-  const parts: string[] = []
-  if (roomKey) {
-    const room = ROOMS[roomKey]
-    parts.push(room ? room.en : roomKey)
+function flattenPlaces(tree: Array<{ id: string; label: string; type: string; children: unknown[] }>, prefix = ''): Array<{ id: string; label: string }> {
+  const out: Array<{ id: string; label: string }> = []
+  for (const p of tree) {
+    out.push({ id: p.id, label: prefix ? `${prefix} › ${p.label}` : p.label })
+    out.push(...flattenPlaces(p.children as Array<{ id: string; label: string; type: string; children: unknown[] }>, prefix ? `${prefix} › ${p.label}` : p.label))
   }
-  if (spotKey) {
-    const spot = SPOTS[spotKey]
-    parts.push(spot ? spot.en : spotKey)
-  }
-  if (detailKey) {
-    const detail = SPOT_DETAILS[detailKey]
-    parts.push(detail ? detail.en : detailKey)
-  }
-  return parts.join(' \u203A ')
+  return out
 }
 
-export function ItemEditSheet({ mode, entry, householdId, householdTags, onSave, onDelete, onClose }: ItemEditSheetProps) {
+export function ItemEditSheet({ mode, entry, householdId, onSave, onDelete, onClose }: ItemEditSheetProps) {
   const { language } = useLanguage()
+  const { placeTree } = usePlaces(householdId)
   const [itemName, setItemName] = useState(entry?.item_name ?? '')
-  const [roomKey, setRoomKey] = useState(entry?.room_key ?? '')
-  const [spotKey, setSpotKey] = useState(entry?.spot_key ?? '')
-  const [spotDetail, setSpotDetail] = useState(entry?.spot_detail ?? '')
+  const [placeId, setPlaceId] = useState(entry?.place_id ?? '')
+  const [locationText, setLocationText] = useState(entry?.place_id ? '' : (entry?.location_description ?? ''))
   const [categoryKey, setCategoryKey] = useState(entry?.category_key ?? '')
   const [photoPath, setPhotoPath] = useState<string | null>(entry?.photo_path ?? null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
-  const customRooms = householdTags.filter((t) => t.tag_type === 'room')
-  const customSpots = householdTags.filter((t) => t.tag_type === 'spot')
-  const customDetails = householdTags.filter((t) => t.tag_type === 'detail')
+  const placeOptions = flattenPlaces(placeTree as Array<{ id: string; label: string; type: string; children: unknown[] }>)
 
   function handleSave() {
     if (!itemName.trim()) return
+    const selectedPlace = placeOptions.find((p) => p.id === placeId)
+    const locationDescription = selectedPlace ? selectedPlace.label : locationText.trim()
     onSave({
       item_name: itemName.trim().toLowerCase(),
-      room_key: roomKey || null,
-      spot_key: spotKey || null,
-      spot_detail: spotDetail || null,
+      room_key: null,
+      spot_key: null,
+      spot_detail: null,
       category_key: categoryKey || null,
-      location_description: buildLocationDesc(roomKey || null, spotKey || null, spotDetail || null),
+      location_description: locationDescription,
       photo_path: photoPath,
+      place_id: placeId || null,
     })
   }
 
@@ -121,41 +115,23 @@ export function ItemEditSheet({ mode, entry, householdId, householdTags, onSave,
 
           <div className="edit-sheet__field">
             <label className="edit-sheet__label">{ui('add.room', language)}</label>
-            <select className="edit-sheet__select" value={roomKey} onChange={(e) => setRoomKey(e.target.value)}>
-              <option value="">—</option>
-              {Object.entries(ROOMS).map(([key]) => (
-                <option key={key} value={key}>{t(ROOMS, key, language)}</option>
-              ))}
-              {customRooms.map((tag) => (
-                <option key={`custom-${tag.tag_key}`} value={tag.tag_key}>{tag.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="edit-sheet__field">
-            <label className="edit-sheet__label">{ui('add.spot', language)}</label>
-            <select className="edit-sheet__select" value={spotKey} onChange={(e) => setSpotKey(e.target.value)}>
-              <option value="">—</option>
-              {Object.entries(SPOTS).map(([key]) => (
-                <option key={key} value={key}>{t(SPOTS, key, language)}</option>
-              ))}
-              {customSpots.map((tag) => (
-                <option key={`custom-${tag.tag_key}`} value={tag.tag_key}>{tag.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="edit-sheet__field">
-            <label className="edit-sheet__label">{ui('add.detail', language)}</label>
-            <select className="edit-sheet__select" value={spotDetail} onChange={(e) => setSpotDetail(e.target.value)}>
-              <option value="">—</option>
-              {Object.entries(SPOT_DETAILS).map(([key]) => (
-                <option key={key} value={key}>{t(SPOT_DETAILS, key, language)}</option>
-              ))}
-              {customDetails.map((tag) => (
-                <option key={`custom-${tag.tag_key}`} value={tag.tag_key}>{tag.label}</option>
-              ))}
-            </select>
+            {placeOptions.length > 0 && (
+              <select className="edit-sheet__select" value={placeId} onChange={(e) => { setPlaceId(e.target.value); if (!e.target.value) setLocationText(''); }}>
+                <option value="">—</option>
+                {placeOptions.map((p) => (
+                  <option key={p.id} value={p.id}>{p.label}</option>
+                ))}
+              </select>
+            )}
+            {(!placeId || placeOptions.length === 0) && (
+              <input
+                className="edit-sheet__input"
+                type="text"
+                value={locationText}
+                onChange={(e) => setLocationText(e.target.value)}
+                placeholder="e.g. living room › desk › top drawer"
+              />
+            )}
           </div>
 
           <div className="edit-sheet__field">

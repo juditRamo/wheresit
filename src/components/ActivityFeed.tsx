@@ -2,7 +2,6 @@ import { MoveRight } from 'lucide-react'
 import { useActivityFeed } from '../hooks/useActivityFeed'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
-import { t, ROOMS, SPOTS, SPOT_DETAILS } from '../i18n/picklists'
 import './ActivityFeed.css'
 
 interface ActivityFeedProps {
@@ -19,19 +18,6 @@ function timeAgo(dateStr: string, lang: 'en' | 'es'): string {
   return ui('activity.ago', lang, { time: ui('activity.days', lang, { n: days }) })
 }
 
-function buildLocation(roomKey: string | null, spotKey: string | null, spotDetail: string | null, locationDesc: string, lang: 'en' | 'es'): string {
-  if (roomKey) {
-    const parts: string[] = []
-    const room = t(ROOMS, roomKey, lang)
-    if (room) parts.push(room)
-    const spot = t(SPOTS, spotKey, lang)
-    if (spot) parts.push(spot)
-    const detail = t(SPOT_DETAILS, spotDetail, lang)
-    if (detail) parts.push(detail)
-    return parts.join(' \u203A ')
-  }
-  return locationDesc
-}
 
 export function ActivityFeed({ householdId }: ActivityFeedProps) {
   const { activities, loading } = useActivityFeed(householdId)
@@ -49,7 +35,7 @@ export function ActivityFeed({ householdId }: ActivityFeedProps) {
     <div className="activity-feed">
       {activities.map((a) => {
         const userLabel = a.moved_by ? a.moved_by.slice(0, 8) : '?'
-        const location = buildLocation(a.room_key, a.spot_key, a.spot_detail, a.location_description, language)
+        const location = a.location_description
         return (
           <div key={a.id} className="activity-feed__item">
             <div className="activity-feed__avatar">{userLabel.slice(0, 2)}</div>

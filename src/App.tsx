@@ -9,6 +9,7 @@ import { Sidebar } from './components/Sidebar'
 import { BottomNav, type NavTab } from './components/BottomNav'
 import { Chat } from './components/Chat'
 import { InventoryView } from './components/InventoryView'
+import { LocationsView } from './components/LocationsView'
 import { SearchView } from './components/SearchView'
 import { SettingsPanel } from './components/SettingsPanel'
 import type { LocationRef } from './types'
@@ -37,7 +38,7 @@ function AppInner() {
 
   const handleTabNavigate = useCallback((tab: NavTab) => {
     if (tab === 'items' && activeTab === 'items') {
-      setItemsFilter(null) // re-tap clears filter
+      setItemsFilter(null)
     }
     setActiveTab(tab)
   }, [activeTab])
@@ -97,6 +98,9 @@ function AppInner() {
           {activeTab === 'items' && selectedId && (
             <InventoryView householdId={selectedId} filter={itemsFilter} onClearFilter={() => setItemsFilter(null)} />
           )}
+          {activeTab === 'locations' && selectedId && (
+            <LocationsView householdId={selectedId} onNavigateToItems={handleNavigateToItems} />
+          )}
           {activeTab === 'search' && selectedId && (
             <SearchView householdId={selectedId} onNavigateToItems={handleNavigateToItems} />
           )}
@@ -111,6 +115,7 @@ function AppInner() {
           selectedId={selectedId}
           onSelectHousehold={setSelectedId}
           onClose={() => setSettingsOpen(false)}
+          onNavigateToLocations={() => { setActiveTab('locations'); setSettingsOpen(false); }}
         />
       )}
     </div>

@@ -1,5 +1,4 @@
 import { Archive, Home, Clock, AlertTriangle } from 'lucide-react'
-import { t, ROOMS } from '../i18n/picklists'
 import { ui } from '../i18n/ui'
 import type { Lang } from '../i18n/picklists'
 import './DashboardCards.css'
@@ -20,9 +19,7 @@ interface DashboardCardsProps {
 export function DashboardCards({ stats, language }: DashboardCardsProps) {
   if (stats.totalItems === 0) return null
 
-  const roomLabel = stats.mostPopulatedRoom
-    ? t(ROOMS, stats.mostPopulatedRoom, language) || stats.mostPopulatedRoom
-    : '—'
+  const roomLabel = stats.mostPopulatedRoom ?? '—'
 
   return (
     <div className="dashboard">

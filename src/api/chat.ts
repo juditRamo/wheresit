@@ -1,5 +1,5 @@
 import { supabase } from '../supabaseClient'
-import type { LocationRef, NewTag, QueryResult, PendingUpdate } from '../types'
+import type { LocationRef, QueryResult, PendingUpdate, PendingPlaceMatch } from '../types'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -8,12 +8,16 @@ export interface ChatResponse {
   reply: string
   language: 'en' | 'es'
   locationRef?: LocationRef
-  newTags?: NewTag[]
   queryResults?: QueryResult[]
   pendingUpdate?: PendingUpdate
+  pendingPlaceMatch?: PendingPlaceMatch
 }
 
-export async function sendChatMessage(message: string, householdId: string, confirm?: boolean): Promise<ChatResponse> {
+export async function sendChatMessage(
+  message: string,
+  householdId: string,
+  options?: { confirm?: boolean; confirmPlaceId?: string }
+): Promise<ChatResponse> {
   const { data: { session }, error: sessionError } = await supabase.auth.getSession()
   if (sessionError || !session?.access_token) {
     throw new Error('Not signed in')
@@ -27,7 +31,8 @@ export async function sendChatMessage(message: string, householdId: string, conf
 
   const url = `${supabaseUrl}/functions/v1/chat`
   const body: Record<string, unknown> = { message, householdId }
-  if (confirm) body.confirm = true
+  if (options?.confirm) body.confirm = true
+  if (options?.confirmPlaceId) body.confirmPlaceId = options.confirmPlaceId
 
   const res = await fetch(url, {
     method: 'POST',
@@ -47,8 +52,8 @@ export async function sendChatMessage(message: string, householdId: string, conf
     reply: resBody.reply ?? '',
     language: resBody.language === 'es' ? 'es' : 'en',
     locationRef: resBody.locationRef,
-    newTags: resBody.newTags,
     queryResults: resBody.queryResults,
     pendingUpdate: resBody.pendingUpdate,
+    pendingPlaceMatch: resBody.pendingPlaceMatch,
   }
 }

@@ -18,9 +18,9 @@ import {
   Car,
 } from 'lucide-react'
 import { useStorageEntries } from '../hooks/useStorageEntries'
-import { useHouseholdTags } from '../hooks/useHouseholdTags'
+import { usePlaces } from '../hooks/usePlaces'
 import { useLanguage } from '../i18n/LanguageContext'
-import { t, ROOMS, SPOTS, SPOT_DETAILS, CATEGORIES } from '../i18n/picklists'
+import { t, CATEGORIES } from '../i18n/picklists'
 import { ui } from '../i18n/ui'
 import type { StorageEntry, LocationRef } from '../types'
 import { ItemEditSheet } from './ItemEditSheet'
@@ -78,28 +78,40 @@ function getRoomIcon(roomKey: string) {
   return Home
 }
 
-function buildLocationDisplay(entry: StorageEntry, lang: 'en' | 'es'): string {
-  if (entry.room_key) {
-    const parts: string[] = []
-    const room = t(ROOMS, entry.room_key, lang)
-    if (room) parts.push(room)
-    const spot = t(SPOTS, entry.spot_key, lang)
-    if (spot) parts.push(spot)
-    const detail = t(SPOT_DETAILS, entry.spot_detail, lang)
-    if (detail) parts.push(detail)
-    return parts.join(' \u203A ')
-  }
-  return entry.location_description
+function buildLocationDisplay(entry: StorageEntry, placeLabel?: string | null): string {
+  return placeLabel ?? entry.location_description
 }
 
-function groupByRoom(entries: StorageEntry[], lang: 'en' | 'es'): Record<string, { key: string; entries: StorageEntry[] }> {
-  const groups: Record<string, { key: string; entries: StorageEntry[] }> = {}
+function getRootPlaceId(placeId: string | null, places: Array<{ id: string; parent_place_id: string | null }>): string | null {
+  if (!placeId) return null
+  const byId = new Map(places.map((p) => [p.id, p]))
+  let current = placeId
+  while (current) {
+    const p = byId.get(current)
+    if (!p) return current
+    if (!p.parent_place_id) return current
+    current = p.parent_place_id
+  }
+  return null
+}
+
+function groupByPlace(entries: StorageEntry[], places: Array<{ id: string; label: string; parent_place_id: string | null }>): Record<string, { key: string; label: string; entries: StorageEntry[] }> {
+  const groups: Record<string, { key: string; label: string; entries: StorageEntry[] }> = {}
+  const byId = new Map(places.map((p) => [p.id, p]))
   for (const entry of entries) {
-    const roomKey = entry.room_key ?? 'other'
-    const label = t(ROOMS, roomKey, lang) || ui('inventory.other_room', lang)
-    if (!groups[roomKey]) groups[roomKey] = { key: roomKey, entries: [] }
-    groups[roomKey].entries.push(entry)
-    void label
+    let groupKey: string
+    let label: string
+    if (entry.place_id) {
+      const rootId = getRootPlaceId(entry.place_id, places)
+      const root = rootId ? byId.get(rootId) : null
+      groupKey = rootId ?? entry.place_id
+      label = root?.label ?? entry.location_description?.split(' › ')[0] ?? 'Other'
+    } else {
+      groupKey = entry.location_description?.split(' › ')[0] ?? 'other'
+      label = groupKey
+    }
+    if (!groups[groupKey]) groups[groupKey] = { key: groupKey, label, entries: [] }
+    groups[groupKey].entries.push(entry)
   }
   return groups
 }
@@ -117,7 +129,7 @@ function groupByCategory(entries: StorageEntry[], lang: 'en' | 'es'): Record<str
 
 export function InventoryView({ householdId, filter, onClearFilter }: InventoryViewProps) {
   const { entries, loading, refetch, updateEntry, deleteEntry, createEntry, stats } = useStorageEntries(householdId)
-  const { tags: householdTags } = useHouseholdTags(householdId)
+  const { getDescendantIds, getPlaceById, places } = usePlaces(householdId)
   const { language } = useLanguage()
   const [activeTab, setActiveTab] = useState<SortTab>('room')
   const [searchQuery, setSearchQuery] = useState('')
@@ -127,7 +139,12 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
   // Apply location filter if set
   let filtered = filter
     ? entries.filter((e) => {
-        const roomMatch = e.room_key === filter.room_key || (!e.room_key && e.location_description === filter.room_key)
+        if (filter.place_id) {
+          const placeIds = new Set(getDescendantIds(filter.place_id))
+          placeIds.add(filter.place_id)
+          return e.place_id && placeIds.has(e.place_id)
+        }
+        const roomMatch = e.room_key === filter.room_key || (!e.room_key && filter.room_key && e.location_description === filter.room_key)
         if (!roomMatch) return false
         if (filter.spot_key) return e.spot_key === filter.spot_key
         return true
@@ -140,7 +157,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
     filtered = filtered.filter(
       (e) =>
         e.item_name.toLowerCase().includes(q) ||
-        buildLocationDisplay(e, language).toLowerCase().includes(q)
+        buildLocationDisplay(e).toLowerCase().includes(q)
     )
   }
 
@@ -150,10 +167,10 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
   let sections: Array<{ label: string; key: string; items: StorageEntry[] }>
 
   if (activeTab === 'room') {
-    const groups = groupByRoom(filtered, language)
+    const groups = groupByPlace(filtered, places)
     sections = Object.entries(groups).map(([, g]) => ({
       key: g.key,
-      label: t(ROOMS, g.key, language) || ui('inventory.other_room', language),
+      label: g.label || ui('inventory.other_room', language),
       items: g.entries,
     }))
   } else if (activeTab === 'category') {
@@ -177,6 +194,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
     category_key: string | null
     location_description: string
     photo_path?: string | null
+    place_id?: string | null
   }) {
     if (editingEntry) {
       await updateEntry(editingEntry.id, data)
@@ -199,6 +217,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
     category_key: string | null
     location_description: string
     photo_path?: string | null
+    place_id?: string | null
   }) {
     await createEntry(data)
     setShowAddSheet(false)
@@ -239,12 +258,11 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
       {filter && (
         <div className="inventory__filter-bar">
           <span className="inventory__filter-text">
-            {filter.spot_key
-              ? ui('inventory.filtered_spot', language, {
-                  room: t(ROOMS, filter.room_key, language) || filter.room_key,
-                  spot: t(SPOTS, filter.spot_key, language) || filter.spot_key,
-                })
-              : ui('inventory.filtered', language, { room: t(ROOMS, filter.room_key, language) || filter.room_key })}
+            {ui('inventory.filtered', language, {
+              room: filter.place_id
+                ? (filter.place_label ?? getPlaceById(filter.place_id)?.label ?? filter.place_id)
+                : (filter.room_key ?? ''),
+            })}
           </span>
           <button className="inventory__filter-clear" onClick={onClearFilter}>
             <X size={12} />
@@ -300,7 +318,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
         /* Items List */
         <div className="inventory__list">
           {sections.map((section) => {
-            const RoomIcon = getRoomIcon(section.key)
+            const RoomIcon = getRoomIcon(section.label)
             return (
               <div key={section.key} className="inventory__section">
                 {(activeTab === 'room' || activeTab === 'category') && (
@@ -334,7 +352,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
                       </div>
                       <div className="inventory__item-info">
                         <span className="inventory__item-name">{entry.item_name}</span>
-                        <span className="inventory__item-loc">{buildLocationDisplay(entry, language)}</span>
+                        <span className="inventory__item-loc">{buildLocationDisplay(entry, entry.place_id ? getPlaceById(entry.place_id)?.label : null)}</span>
                       </div>
                       {entry.category_key && (
                         <span className="inventory__item-badge">
@@ -372,7 +390,6 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
           mode="edit"
           entry={editingEntry}
           householdId={householdId}
-          householdTags={householdTags}
           onSave={handleSaveEdit}
           onDelete={handleDeleteEntry}
           onClose={() => setEditingEntry(null)}
@@ -384,7 +401,6 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
         <ItemEditSheet
           mode="create"
           householdId={householdId}
-          householdTags={householdTags}
           onSave={handleCreateEntry}
           onClose={() => setShowAddSheet(false)}
         />

@@ -95,6 +95,14 @@
   max-height: 12rem;
   overflow-y: auto;
   z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.chat__input-wrap:focus-within .chat__suggestions {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .chat__suggestion {

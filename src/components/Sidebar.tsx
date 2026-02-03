@@ -1,4 +1,4 @@
-import { MessageSquare, Archive, Search, MapPin, Settings } from 'lucide-react'
+import { MessageSquare, Archive, MapPin, Search, Settings } from 'lucide-react'
 import type { NavTab } from './BottomNav'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
@@ -13,6 +13,7 @@ interface SidebarProps {
 const navItems: { tab: NavTab; icon: typeof MessageSquare }[] = [
   { tab: 'chat', icon: MessageSquare },
   { tab: 'items', icon: Archive },
+  { tab: 'locations', icon: MapPin },
   { tab: 'search', icon: Search },
 ]
 
@@ -26,7 +27,7 @@ export function Sidebar({ active, onNavigate, onSettingsClick }: SidebarProps) {
           <MapPin size={18} color="var(--gold-primary)" />
         </div>
         <div className="sidebar__logo-text">
-          <span className="sidebar__app-name">JEEVES</span>
+          <span className="sidebar__app-name">WHERESIT</span>
           <span className="sidebar__app-sub">{ui('header.subtitle', language)}</span>
         </div>
       </div>

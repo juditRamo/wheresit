@@ -1,0 +1,220 @@
+.locations-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.locations-view__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.locations-view__title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.locations-view__add-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gold-primary);
+  background: rgba(201, 169, 98, 0.1);
+  border: 1px solid var(--gold-border);
+  border-radius: 8px;
+}
+
+.locations-view__add-btn:hover {
+  background: rgba(201, 169, 98, 0.2);
+}
+
+.locations-view__form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.locations-view__select,
+.locations-view__input {
+  padding: 8px 12px;
+  font-size: 13px;
+  border: 1px solid var(--border-dark);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.locations-view__input {
+  flex: 1;
+  min-width: 120px;
+}
+
+.locations-view__submit,
+.locations-view__cancel {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+}
+
+.locations-view__submit {
+  background: var(--gold-primary);
+  color: var(--text-on-gold);
+  border: none;
+}
+
+.locations-view__cancel {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-dark);
+}
+
+.locations-view__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.locations-view__empty {
+  color: var(--text-tertiary);
+  font-size: 14px;
+  margin: 0;
+}
+
+.locations-view__tree {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.locations-view__node {
+  border-radius: 8px;
+  background: var(--bg-secondary);
+}
+
+.locations-view__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.locations-view__expand {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.locations-view__chevron {
+  transition: transform 0.15s;
+}
+
+.locations-view__chevron--open {
+  transform: rotate(90deg);
+}
+
+.locations-view__grip {
+  color: var(--text-tertiary);
+}
+
+.locations-view__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.locations-view__label {
+  font-weight: 600;
+  color: var(--text-primary);
+  display: block;
+}
+
+.locations-view__label--link {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: var(--gold-primary);
+}
+
+.locations-view__label--link:hover {
+  text-decoration: underline;
+}
+
+.locations-view__meta {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.locations-view__actions {
+  display: flex;
+  gap: 4px;
+}
+
+.locations-view__action {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.locations-view__action:hover {
+  background: var(--border-dark);
+  color: var(--text-primary);
+}
+
+.locations-view__action--danger:hover {
+  background: rgba(180, 60, 60, 0.2);
+  color: var(--danger, #c44);
+}
+
+.locations-view__move-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px 12px 44px;
+  border-top: 1px solid var(--border-dark);
+}
+
+.locations-view__move-opt {
+  padding: 6px 10px;
+  font-size: 12px;
+  background: rgba(201, 169, 98, 0.1);
+  border: 1px solid var(--gold-border);
+  border-radius: 6px;
+  color: var(--gold-primary);
+  cursor: pointer;
+}
+
+.locations-view__move-opt:hover {
+  background: rgba(201, 169, 98, 0.2);
+}
+
+.locations-view__children {
+  border-top: 1px solid var(--border-dark);
+}

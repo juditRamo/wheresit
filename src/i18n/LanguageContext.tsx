@@ -19,7 +19,7 @@ function detectBrowserLang(): Lang {
 
 function loadPersistedLang(): Lang {
   try {
-    const stored = localStorage.getItem('jeeves_lang')
+    const stored = localStorage.getItem('wheresit_lang')
     if (stored === 'en' || stored === 'es') return stored
   } catch { /* ignore */ }
   return detectBrowserLang()
@@ -34,7 +34,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem('jeeves_lang', language)
+      localStorage.setItem('wheresit_lang', language)
     } catch { /* ignore */ }
   }, [language])
 

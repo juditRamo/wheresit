@@ -15,6 +15,17 @@ export interface HouseholdMember {
   role: 'owner' | 'member'
 }
 
+export interface Place {
+  id: string
+  household_id: string
+  type: string
+  label: string
+  parent_place_id: string | null
+  attributes: Record<string, string>
+  canonical_key: string | null
+  created_at: string
+}
+
 export interface StorageEntry {
   id: string
   household_id: string
@@ -24,25 +35,11 @@ export interface StorageEntry {
   spot_key: string | null
   spot_detail: string | null
   category_key: string | null
+  place_id: string | null
   created_at: string
   updated_at: string
   created_by: string | null
   photo_path: string | null
-}
-
-export interface HouseholdTag {
-  id: string
-  household_id: string
-  tag_type: 'room' | 'spot' | 'detail'
-  tag_key: string
-  label: string
-  parent_room_key?: string | null
-}
-
-export interface NewTag {
-  type: 'room' | 'spot' | 'detail'
-  key: string
-  label: string
 }
 
 export interface LocationHistory {
@@ -63,6 +60,7 @@ export interface QueryResult {
   spot_key: string | null
   spot_detail: string | null
   location_description: string
+  place_id?: string | null
 }
 
 export interface PendingUpdate {
@@ -76,11 +74,20 @@ export interface PendingUpdate {
   category_key?: string
 }
 
+export interface PendingPlaceMatch {
+  suggestedPlaceId: string
+  suggestedPlaceLabel: string
+  locationPath: Array<{ type: string; label: string; attributes?: Record<string, string> }>
+  confidence: 'low' | 'medium'
+}
+
 export type ChatMessageRole = 'user' | 'assistant'
 
 export interface LocationRef {
-  room_key: string
+  room_key?: string
   spot_key?: string
+  place_id?: string
+  place_label?: string
 }
 
 export interface ChatMessage {
@@ -89,7 +96,7 @@ export interface ChatMessage {
   content: string
   createdAt: Date
   locationRef?: LocationRef
-  newTags?: NewTag[]
   queryResults?: QueryResult[]
   pendingUpdate?: PendingUpdate
+  pendingPlaceMatch?: PendingPlaceMatch
 }

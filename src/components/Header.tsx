@@ -17,7 +17,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           <MapPin size={18} color="var(--gold-primary)" />
         </div>
         <div className="header__logo-text">
-          <span className="header__app-name">JEEVES</span>
+          <span className="header__app-name">WHERESIT</span>
           <span className="header__app-sub">{ui('header.subtitle', language)}</span>
         </div>
       </div>

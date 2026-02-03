@@ -30,7 +30,7 @@ export function useStorageEntries(householdId: string | null) {
   }, [householdId, refetch])
 
   const updateEntry = useCallback(
-    async (id: string, data: Partial<Pick<StorageEntry, 'item_name' | 'room_key' | 'spot_key' | 'spot_detail' | 'category_key' | 'location_description' | 'photo_path'>>) => {
+    async (id: string, data: Partial<Pick<StorageEntry, 'item_name' | 'room_key' | 'spot_key' | 'spot_detail' | 'category_key' | 'location_description' | 'photo_path' | 'place_id'>>) => {
       const { error } = await supabase
         .from('storage_entries')
         .update({ ...data, updated_at: new Date().toISOString() })
@@ -62,6 +62,7 @@ export function useStorageEntries(householdId: string | null) {
       category_key: string | null
       location_description: string
       photo_path?: string | null
+      place_id?: string | null
     }) => {
       if (!householdId) return { error: new Error('No household') }
       const { data: session } = await supabase.auth.getSession()
@@ -85,13 +86,13 @@ export function useStorageEntries(householdId: string | null) {
     const DAY = 86400000
     const totalItems = entries.length
 
-    // Items per room
-    const roomCounts: Record<string, number> = {}
+    // Items per location (first segment of path or "other")
+    const locationCounts: Record<string, number> = {}
     for (const e of entries) {
-      const key = e.room_key ?? 'other'
-      roomCounts[key] = (roomCounts[key] ?? 0) + 1
+      const key = e.location_description?.split(' › ')[0] ?? 'other'
+      locationCounts[key] = (locationCounts[key] ?? 0) + 1
     }
-    const topRooms = Object.entries(roomCounts)
+    const topRooms = Object.entries(locationCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
     const mostPopulatedRoom = topRooms[0]?.[0] ?? null

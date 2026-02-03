@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Search, Package, BookOpen, Watch, Key, Headphones } from 'lucide-react'
 import { useStorageEntries } from '../hooks/useStorageEntries'
+import { usePlaces } from '../hooks/usePlaces'
 import { useLanguage } from '../i18n/LanguageContext'
-import { t, ROOMS, SPOTS, SPOT_DETAILS, CATEGORIES } from '../i18n/picklists'
+import { t, CATEGORIES } from '../i18n/picklists'
 import { ui } from '../i18n/ui'
 import type { StorageEntry, LocationRef } from '../types'
 import './SearchView.css'
@@ -32,18 +33,8 @@ function getItemIcon(itemName: string) {
   return Package
 }
 
-function buildLocationDisplay(entry: StorageEntry, lang: 'en' | 'es'): string {
-  if (entry.room_key) {
-    const parts: string[] = []
-    const room = t(ROOMS, entry.room_key, lang)
-    if (room) parts.push(room)
-    const spot = t(SPOTS, entry.spot_key, lang)
-    if (spot) parts.push(spot)
-    const detail = t(SPOT_DETAILS, entry.spot_detail, lang)
-    if (detail) parts.push(detail)
-    return parts.join(' \u203A ')
-  }
-  return entry.location_description
+function buildLocationDisplay(entry: StorageEntry, placeLabel?: string | null): string {
+  return placeLabel ?? entry.location_description
 }
 
 function highlightMatch(text: string, query: string): React.ReactNode {
@@ -61,27 +52,27 @@ function highlightMatch(text: string, query: string): React.ReactNode {
 
 export function SearchView({ householdId, onNavigateToItems }: SearchViewProps) {
   const { entries } = useStorageEntries(householdId)
+  const { getPlaceById } = usePlaces(householdId)
   const { language } = useLanguage()
   const [query, setQuery] = useState('')
-  const [roomFilter, setRoomFilter] = useState<string | null>(null)
+  const [placeFilter, setPlaceFilter] = useState<string | null>(null)
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
 
-  // Collect unique rooms and categories from entries
-  const roomKeys = [...new Set(entries.map((e) => e.room_key).filter(Boolean))] as string[]
+  const placeKeys = [...new Set(entries.map((e) => e.location_description?.split(' › ')[0]).filter(Boolean))] as string[]
   const categoryKeys = [...new Set(entries.map((e) => e.category_key).filter(Boolean))] as string[]
 
-  // Filter entries
   let results = entries
   if (query) {
     const q = query.toLowerCase()
     results = results.filter(
-      (e) =>
-        e.item_name.toLowerCase().includes(q) ||
-        buildLocationDisplay(e, language).toLowerCase().includes(q)
+      (e) => {
+        const loc = buildLocationDisplay(e, e.place_id ? getPlaceById(e.place_id)?.label : null)
+        return e.item_name.toLowerCase().includes(q) || loc.toLowerCase().includes(q)
+      }
     )
   }
-  if (roomFilter) {
-    results = results.filter((e) => e.room_key === roomFilter)
+  if (placeFilter) {
+    results = results.filter((e) => (e.location_description?.split(' › ')[0]) === placeFilter)
   }
   if (categoryFilter) {
     results = results.filter((e) => e.category_key === categoryFilter)
@@ -105,16 +96,16 @@ export function SearchView({ householdId, onNavigateToItems }: SearchViewProps) 
 
       {/* Filter chips */}
       <div className="search-view__chips">
-        {roomKeys.map((key) => (
+        {placeKeys.map((key) => (
           <button
             key={key}
-            className={`search-view__chip ${roomFilter === key ? 'search-view__chip--active' : ''}`}
-            onClick={() => setRoomFilter(roomFilter === key ? null : key)}
+            className={`search-view__chip ${placeFilter === key ? 'search-view__chip--active' : ''}`}
+            onClick={() => setPlaceFilter(placeFilter === key ? null : key)}
           >
-            {t(ROOMS, key, language)}
+            {key}
           </button>
         ))}
-        {roomKeys.length > 0 && categoryKeys.length > 0 && (
+        {placeKeys.length > 0 && categoryKeys.length > 0 && (
           <div className="search-view__chip-divider" />
         )}
         {categoryKeys.map((key) => (
@@ -140,8 +131,10 @@ export function SearchView({ householdId, onNavigateToItems }: SearchViewProps) 
               key={entry.id}
               className="search-view__result"
               onClick={() => {
-                if (entry.room_key) {
-                  onNavigateToItems({ room_key: entry.room_key })
+                if (entry.place_id) {
+                  onNavigateToItems({ place_id: entry.place_id, place_label: getPlaceById(entry.place_id)?.label })
+                } else {
+                  onNavigateToItems({ room_key: entry.location_description })
                 }
               }}
             >
@@ -154,7 +147,7 @@ export function SearchView({ householdId, onNavigateToItems }: SearchViewProps) 
               </div>
               <div className="search-view__result-info">
                 <span className="search-view__result-name">{highlightMatch(entry.item_name, query)}</span>
-                <span className="search-view__result-loc">{buildLocationDisplay(entry, language)}</span>
+                <span className="search-view__result-loc">{buildLocationDisplay(entry, entry.place_id ? getPlaceById(entry.place_id)?.label : null)}</span>
               </div>
               {entry.category_key && (
                 <span className="search-view__result-badge">
@@ -166,7 +159,7 @@ export function SearchView({ householdId, onNavigateToItems }: SearchViewProps) 
         })}
         {results.length === 0 && (
           <div className="search-view__empty">
-            <p>{query || roomFilter || categoryFilter ? ui('search.no_results', language) : ui('inventory.empty', language)}</p>
+            <p>{query || placeFilter || categoryFilter ? ui('search.no_results', language) : ui('inventory.empty', language)}</p>
           </div>
         )}
       </div>

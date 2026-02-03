@@ -1,9 +1,9 @@
-import { MessageSquare, Archive, Search } from 'lucide-react'
+import { MessageSquare, Archive, MapPin, Search } from 'lucide-react'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
 import './BottomNav.css'
 
-export type NavTab = 'chat' | 'items' | 'search'
+export type NavTab = 'chat' | 'items' | 'locations' | 'search'
 
 interface BottomNavProps {
   active: NavTab
@@ -28,6 +28,13 @@ export function BottomNav({ active, onNavigate }: BottomNavProps) {
       >
         <Archive size={20} />
         <span className="bottom-nav__label">{ui('nav.items', language)}</span>
+      </button>
+      <button
+        className={`bottom-nav__item ${active === 'locations' ? 'bottom-nav__item--active' : ''}`}
+        onClick={() => onNavigate('locations')}
+      >
+        <MapPin size={20} />
+        <span className="bottom-nav__label">{ui('nav.locations', language)}</span>
       </button>
       <button
         className={`bottom-nav__item ${active === 'search' ? 'bottom-nav__item--active' : ''}`}

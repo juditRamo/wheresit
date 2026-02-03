@@ -1,9 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import {
-  ROOM_KEYS, SPOT_KEYS, SPOT_DETAIL_KEYS, CATEGORY_KEYS,
-  buildLocationString, roomLabel, spotLabel,
-  isCustomRoom, isCustomSpot, isCustomDetail,
-} from './picklists.ts'
+import { buildCanonicalKey, buildLocationDescFromPath } from './picklists.ts'
+
+type SupabaseClientType = ReturnType<typeof createClient>
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,13 +12,582 @@ function normalizeItem(s: string): string {
   return s.toLowerCase().trim().replace(/\s+/g, ' ')
 }
 
-type Lang = 'en' | 'es'
+const CONCEPT_SIMILARITY_THRESHOLD = 0.78
+const CONCEPT_QUERY_THRESHOLD = 0.65
 
-interface NewTag {
-  type: 'room' | 'spot' | 'detail'
-  key: string
+function canonicalizeConceptLabel(input: string | undefined | null): string {
+  if (!input) return ''
+  return input
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function embeddingToVectorLiteral(values: number[]): string {
+  const trimmed = values.map((value) => {
+    if (!Number.isFinite(value)) return 0
+    return Number(value.toFixed(6))
+  })
+  return `[${trimmed.join(',')}]`
+}
+
+async function embedTextForConcept(text: string, geminiKey?: string): Promise<number[] | null> {
+  if (!geminiKey) return null
+  const clean = text.trim()
+  if (!clean) return null
+  try {
+    const res = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiKey },
+        body: JSON.stringify({
+          model: 'models/text-embedding-004',
+          content: { parts: [{ text: clean.slice(0, 600) }] },
+        }),
+      }
+    )
+    if (!res.ok) return null
+    const json = (await res.json()) as {
+      embedding?: { values?: number[] }
+      data?: Array<{ embedding?: { values?: number[] } }>
+    }
+    const vector = json.embedding?.values ?? json.data?.[0]?.embedding?.values
+    if (Array.isArray(vector) && vector.length > 0) {
+      return vector.map((v) => (typeof v === 'number' ? v : Number(v)))
+    }
+  } catch {
+    // ignore and fall back
+  }
+  return null
+}
+
+interface ConceptSuggestion {
+  concept: string
+  aliases: string[]
+  broader: string[]
+}
+
+async function requestConceptSuggestion(itemName: string, geminiKey?: string): Promise<ConceptSuggestion | null> {
+  if (!geminiKey) return null
+  const prompt = `You classify household items into reusable semantic concepts.
+Return strict JSON: {"concept":"base noun phrase","aliases":["synonym1","synonym2"],"broader":["category","subcategory"]}.
+- "concept" should be short (1-4 words), singular, and capture the essence of the item.
+- Include at least one alias removing adjectives (e.g. "gafas").
+- "broader" should list more generic groupings (e.g. "materiales para pintar warhammer").
+Input: "${itemName}".`
+  try {
+    const res = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiKey },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.1 },
+        }),
+      }
+    )
+    if (!res.ok) return null
+    const json = (await res.json()) as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> }
+    const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? ''
+    const match = text.match(/\{[\s\S]*\}/)
+    if (!match) return null
+    const parsed = JSON.parse(match[0]) as Partial<ConceptSuggestion>
+    return {
+      concept: parsed.concept?.trim() ?? itemName,
+      aliases: Array.isArray(parsed.aliases) ? parsed.aliases.filter((a): a is string => typeof a === 'string') : [],
+      broader: Array.isArray(parsed.broader) ? parsed.broader.filter((a): a is string => typeof a === 'string') : [],
+    }
+  } catch {
+    return null
+  }
+}
+
+async function findConceptByAliases(
+  supabase: SupabaseClientType,
+  householdId: string,
+  aliases: string[]
+): Promise<{ conceptId: string; label?: string } | null> {
+  const canonical = aliases
+    .map((alias) => canonicalizeConceptLabel(alias))
+    .filter((alias) => alias.length > 0)
+  if (canonical.length === 0) return null
+  try {
+    const { data } = await supabase
+      .from('item_concept_aliases')
+      .select('concept_id, concept:item_concepts(label)')
+      .eq('household_id', householdId)
+      .in('canonical_alias', canonical)
+      .limit(1)
+    if (data && data.length > 0) {
+      return { conceptId: data[0].concept_id as string, label: (data[0] as { concept?: { label?: string } }).concept?.label }
+    }
+  } catch {
+    // ignore
+  }
+  return null
+}
+
+async function upsertConceptAliases(
+  supabase: SupabaseClientType,
+  householdId: string,
+  conceptId: string,
+  aliases: string[]
+) {
+  const payload = aliases
+    .map((alias) => ({
+      alias: alias.trim(),
+      canonical_alias: canonicalizeConceptLabel(alias),
+    }))
+    .filter((row) => row.alias.length > 0 && row.canonical_alias.length > 0)
+    .map((row) => ({
+      household_id: householdId,
+      concept_id: conceptId,
+      alias: row.alias,
+      canonical_alias: row.canonical_alias,
+    }))
+  if (payload.length === 0) return
+  await supabase
+    .from('item_concept_aliases')
+    .upsert(payload, { onConflict: 'household_id,canonical_alias', ignoreDuplicates: false })
+}
+
+interface ConceptResolution {
+  conceptId: string
   label: string
 }
+
+async function ensureConceptForItem(
+  supabase: SupabaseClientType,
+  householdId: string,
+  itemName: string,
+  geminiKey?: string
+): Promise<ConceptResolution | null> {
+  if (!geminiKey) return null
+  const suggestion = await requestConceptSuggestion(itemName, geminiKey)
+  const primary = suggestion?.concept?.trim() || itemName
+  const aliasSet = new Set<string>([itemName, primary])
+  suggestion?.aliases?.forEach((alias) => alias && aliasSet.add(alias))
+  const aliasList = Array.from(aliasSet).filter((alias) => alias.trim().length > 0)
+
+  // Try alias match first
+  const aliasMatch = await findConceptByAliases(supabase, householdId, aliasList)
+  if (aliasMatch) {
+    await upsertConceptAliases(supabase, householdId, aliasMatch.conceptId, aliasList)
+    return { conceptId: aliasMatch.conceptId, label: aliasMatch.label ?? primary }
+  }
+
+  let vectorLiteral: string | null = null
+  const embedding = await embedTextForConcept(primary, geminiKey)
+  if (embedding) {
+    vectorLiteral = embeddingToVectorLiteral(embedding)
+    try {
+      const { data } = await supabase.rpc('match_item_concepts', {
+        p_household_id: householdId,
+        query_embedding: vectorLiteral,
+        match_threshold: CONCEPT_SIMILARITY_THRESHOLD,
+        match_count: 3,
+      })
+      if (data && data.length > 0) {
+        const match = data[0] as { concept_id: string; label?: string }
+        await upsertConceptAliases(supabase, householdId, match.concept_id, aliasList)
+        return { conceptId: match.concept_id, label: match.label ?? primary }
+      }
+    } catch {
+      // ignore similarity errors
+    }
+  }
+
+  let parentConceptId: string | null = null
+  if (suggestion?.broader?.length) {
+    const parentMatch = await findConceptByAliases(supabase, householdId, suggestion.broader)
+    parentConceptId = parentMatch?.conceptId ?? null
+  }
+
+  const insertPayload: Record<string, unknown> = {
+    household_id: householdId,
+    label: primary,
+    canonical_label: canonicalizeConceptLabel(primary),
+    parent_concept_id: parentConceptId,
+  }
+  if (vectorLiteral) {
+    insertPayload.embedding = vectorLiteral
+  } else if (embedding) {
+    insertPayload.embedding = embeddingToVectorLiteral(embedding)
+  }
+
+  const { data: created } = await supabase
+    .from('item_concepts')
+    .insert(insertPayload)
+    .select('id, label')
+    .single()
+
+  if (!created) return null
+
+  await upsertConceptAliases(supabase, householdId, created.id as string, aliasList)
+
+  return { conceptId: created.id as string, label: (created as { label?: string }).label ?? primary }
+}
+
+interface ConceptMatchResult {
+  conceptIds: string[]
+  matchedLabel?: string
+}
+
+async function resolveConceptIdsForQuery(
+  supabase: SupabaseClientType,
+  householdId: string,
+  queryText: string,
+  geminiKey?: string
+): Promise<ConceptMatchResult | null> {
+  const aliasMatch = await findConceptByAliases(supabase, householdId, [queryText])
+  if (aliasMatch) {
+    return { conceptIds: [aliasMatch.conceptId], matchedLabel: aliasMatch.label ?? queryText }
+  }
+
+  if (!geminiKey) return null
+
+  const embedding = await embedTextForConcept(queryText, geminiKey)
+  if (!embedding) return null
+  const vectorLiteral = embeddingToVectorLiteral(embedding)
+  try {
+    const { data } = await supabase.rpc('match_item_concepts', {
+      p_household_id: householdId,
+      query_embedding: vectorLiteral,
+      match_threshold: CONCEPT_QUERY_THRESHOLD,
+      match_count: 5,
+    })
+    if (data && data.length > 0) {
+      const ids = (data as Array<{ concept_id: string }>).map((row) => row.concept_id)
+      const firstLabel = (data[0] as { label?: string }).label
+      return { conceptIds: ids, matchedLabel: firstLabel }
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
+async function linkEntryToConcept(
+  supabase: SupabaseClientType,
+  householdId: string,
+  entryId: string,
+  conceptId: string
+) {
+  await supabase.from('storage_entry_concepts').delete().eq('entry_id', entryId).eq('household_id', householdId)
+  await supabase.from('storage_entry_concepts').upsert(
+    [
+      {
+        entry_id: entryId,
+        concept_id: conceptId,
+        household_id: householdId,
+        source: 'llm',
+        confidence: 0.9,
+      },
+    ],
+    { onConflict: 'entry_id,concept_id', ignoreDuplicates: false }
+  )
+}
+
+async function backfillMissingConcepts(
+  supabase: SupabaseClientType,
+  householdId: string,
+  geminiKey?: string,
+  batchSize = 3
+) {
+  if (!geminiKey) return
+  try {
+    const { data: entries } = await supabase
+      .from('storage_entries')
+      .select('id, item_name, storage_entry_concepts!left(concept_id)')
+      .eq('household_id', householdId)
+      .is('storage_entry_concepts.concept_id', null)
+      .order('updated_at', { ascending: false })
+      .limit(batchSize)
+
+    if (!entries || entries.length === 0) return
+
+    for (const entry of entries as Array<{ id: string; item_name: string }>) {
+      const concept = await ensureConceptForItem(supabase, householdId, entry.item_name, geminiKey)
+      if (concept) {
+        await linkEntryToConcept(supabase, householdId, entry.id, concept.conceptId)
+      }
+    }
+  } catch {
+    // Backfill is opportunistic; ignore failures
+  }
+}
+
+/** Extract location phrases from Spanish/English text (e.g. "segundo cajón", "cajonera", "despacho de Judit") to override LLM labels */
+function extractLocationPhrasesFromMessage(message: string): string[] {
+  const parts: string[] = []
+  const re = /(?:en el |en la |del |de la |de el |in the |in a )(.+?)(?=\s+de la |\s+del |\s+están|\s+está|\s+is |\s+are |,|$)/gi
+  let m: RegExpExecArray | null
+  while ((m = re.exec(message)) !== null) {
+    const phrase = m[1].trim()
+    if (phrase && phrase.length > 1) parts.push(phrase)
+  }
+  return parts
+}
+
+/** Replace LLM labels with exact phrases from user message when we can match them (root-to-leaf order) */
+function fixLabelsFromMessage(path: LocationPathSegment[], message: string): LocationPathSegment[] {
+  const phrases = extractLocationPhrasesFromMessage(message)
+  if (phrases.length !== path.length) return path
+  const rootToLeaf = phrases.reverse()
+  return path.map((seg, i) => ({
+    ...seg,
+    label: rootToLeaf[i] ?? seg.label,
+  }))
+}
+
+function buildPlacesSummary(places: Array<{ id: string; label: string; canonical_key: string | null; parent_place_id: string | null }>): string {
+  const byParent = new Map<string | null, typeof places>()
+  for (const p of places) {
+    const parent = p.parent_place_id
+    if (!byParent.has(parent)) byParent.set(parent, [])
+    byParent.get(parent)!.push(p)
+  }
+  const lines: string[] = []
+  function walk(parentId: string | null, prefix: string) {
+    const children = byParent.get(parentId) ?? []
+    for (const p of children) {
+      const path = prefix ? `${prefix} › ${p.label}` : p.label
+      lines.push(`- [${p.id}] ${path}`)
+      walk(p.id, path)
+    }
+  }
+  walk(null, '')
+  return lines.join('\n')
+}
+
+async function findMatchingPlaceBySemantics(
+  description: string,
+  placesSummary: string,
+  geminiKey: string
+): Promise<string | null> {
+  const prompt = `Given this location description and existing places, does the description refer to one of these places?
+If yes, return the place id in JSON: {"matched_place_id": "uuid"}.
+If no match or unclear, return: {"matched_place_id": null}.
+
+Description: "${description}"
+
+Existing places:
+${placesSummary}
+
+Return JSON only.`
+  const res = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiKey },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.1 },
+      }),
+    }
+  )
+  if (!res.ok) return null
+  const json = (await res.json()) as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> }
+  const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? ''
+  const match = text.match(/\{[\s\S]*\}/)
+  if (!match) return null
+  try {
+    const parsed = JSON.parse(match[0])
+    return parsed.matched_place_id ?? null
+  } catch {
+    return null
+  }
+}
+
+async function normalizeLocationViaLLM(
+  description: string,
+  geminiKey: string
+): Promise<NormalizedLocation | null> {
+  const prompt = `Parse this location description into a structured hierarchy. Return JSON only.
+Use the user's EXACT words for "label" - do not translate or substitute (e.g. "Despacho de Judit" stays "Despacho de Judit", "cajonera" stays "cajonera").
+Format: { "location_path": [ { "type": "room|furniture|shelf|drawer|box|folder|table|etc", "label": "user's exact words", "attributes": { "color": "x", "position": "y", "size": "z" } } ], "canonical_key": "type:label:..." }
+Examples:
+- "the table behind the sofa" -> {"location_path":[{"type":"room","label":"living room"},{"type":"furniture","label":"table","attributes":{"position":"behind sofa"}}],"canonical_key":"room:living_room:furniture:table_position:behind_sofa"}
+- "la cajonera del despacho de Judit" -> {"location_path":[{"type":"room","label":"despacho de Judit"},{"type":"furniture","label":"cajonera"}],"canonical_key":"room:despacho_de_judit:furniture:cajonera"}
+Input: "${description}"`
+  const res = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiKey },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.1 },
+      }),
+    }
+  )
+  if (!res.ok) return null
+  const json = (await res.json()) as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> }
+  const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? ''
+  const match = text.match(/\{[\s\S]*\}/)
+  if (!match) return null
+  try {
+    const parsed = JSON.parse(match[0])
+    const path = Array.isArray(parsed.location_path) ? parsed.location_path : []
+    const canonical = parsed.canonical_key ?? buildCanonicalKey(path)
+    return { location_path: path, canonical_key: canonical }
+  } catch {
+    return null
+  }
+}
+
+async function resolveOrCreatePlace(
+  supabase: ReturnType<typeof createClient>,
+  householdId: string,
+  locationPath: LocationPathSegment[],
+  confirm: boolean,
+  matchedPlaceId: string | null,
+  placesSummary: string,
+  geminiKey: string | undefined
+): Promise<
+  | { place_id: string; location_description: string; confidence: 'high' }
+  | { place_id: null; location_description: string; confidence: 'high' }
+  | { suggestedPlaceId: string; suggestedPlaceLabel: string; locationPath: LocationPathSegment[]; confidence: 'low' | 'medium' }
+> {
+  if (locationPath.length === 0) {
+    return { place_id: null, location_description: '', confidence: 'high' }
+  }
+  const locationDescription = buildLocationDescFromPath(locationPath)
+  const fullCanonicalKey = buildCanonicalKey(locationPath)
+
+  const { data: allPlaces } = await supabase.from('places').select('id, canonical_key, label, attributes, parent_place_id').eq('household_id', householdId)
+  const placesList = (allPlaces ?? []) as Array<{ id: string; canonical_key: string | null; label: string; attributes?: Record<string, string>; parent_place_id: string | null }>
+
+  if (matchedPlaceId) {
+    const found = placesList.find((p) => p.id === matchedPlaceId)
+    if (found) {
+      const lastSeg = locationPath[locationPath.length - 1]
+      const newAttrs = lastSeg?.attributes ?? {}
+      const existingAttrs = found.attributes ?? {}
+      if (Object.keys(newAttrs).length > 0) {
+        const merged = { ...existingAttrs, ...newAttrs }
+        await supabase.from('places').update({ attributes: merged }).eq('id', found.id).eq('household_id', householdId)
+      }
+      return { place_id: found.id, location_description: locationDescription, confidence: 'high' }
+    }
+  }
+
+  const exactMatch = placesList.find((p) => p.canonical_key === fullCanonicalKey)
+  if (exactMatch) {
+    const lastSeg = locationPath[locationPath.length - 1]
+    const newAttrs = lastSeg?.attributes ?? {}
+    const existingAttrs = exactMatch.attributes ?? {}
+    if (Object.keys(newAttrs).length > 0) {
+      const merged = { ...existingAttrs, ...newAttrs }
+      await supabase.from('places').update({ attributes: merged }).eq('id', exactMatch.id).eq('household_id', householdId)
+    }
+    return { place_id: exactMatch.id, location_description: locationDescription, confidence: 'high' }
+  }
+
+  const partialMatches = placesList.filter(
+    (p) =>
+      p.canonical_key && (fullCanonicalKey.includes(p.canonical_key) || p.canonical_key.includes(fullCanonicalKey))
+  )
+  if (partialMatches.length === 1 && !confirm) {
+    return {
+      suggestedPlaceId: partialMatches[0].id,
+      suggestedPlaceLabel: partialMatches[0].label,
+      locationPath,
+      confidence: 'medium',
+    }
+  }
+  if (partialMatches.length > 1 && !confirm) {
+    return {
+      suggestedPlaceId: partialMatches[0].id,
+      suggestedPlaceLabel: partialMatches[0].label,
+      locationPath,
+      confidence: 'low',
+    }
+  }
+
+  if (!confirm && placesList.length > 0 && geminiKey) {
+    const semanticMatch = await findMatchingPlaceBySemantics(locationDescription, placesSummary, geminiKey)
+    if (semanticMatch) {
+      const found = placesList.find((p) => p.id === semanticMatch)
+      if (found) {
+        return {
+          suggestedPlaceId: found.id,
+          suggestedPlaceLabel: found.label,
+          locationPath,
+          confidence: 'medium',
+        }
+      }
+    }
+  }
+
+  let parentId: string | null = null
+  for (let i = 0; i < locationPath.length; i++) {
+    const segment = locationPath[i]
+    const pathSoFar = locationPath.slice(0, i + 1)
+    const canonicalKey = buildCanonicalKey(pathSoFar)
+    const existing = placesList.find((p) => p.canonical_key === canonicalKey)
+    if (existing) {
+      parentId = existing.id
+      continue
+    }
+    const row = {
+      household_id: householdId,
+      type: segment.type ?? 'place',
+      label: segment.label ?? 'unknown',
+      parent_place_id: parentId,
+      attributes: segment.attributes ?? {},
+      canonical_key: canonicalKey,
+    }
+    const { data: created, error: insertError } = await supabase
+      .from('places')
+      .upsert(row, { onConflict: 'household_id,canonical_key', ignoreDuplicates: false })
+      .select('id')
+      .single()
+    if (created) {
+      placesList.push({
+        id: created.id,
+        canonical_key: canonicalKey,
+        label: segment.label,
+        attributes: segment.attributes,
+        parent_place_id: parentId,
+      })
+      parentId = created.id
+    } else if (insertError?.code === '23505') {
+      const { data: existingRow } = await supabase
+        .from('places')
+        .select('id')
+        .eq('household_id', householdId)
+        .eq('canonical_key', canonicalKey)
+        .single()
+      if (existingRow) {
+        placesList.push({
+          id: existingRow.id,
+          canonical_key: canonicalKey,
+          label: segment.label,
+          attributes: segment.attributes,
+          parent_place_id: parentId,
+        })
+        parentId = existingRow.id
+      } else {
+        break
+      }
+    } else {
+      break
+    }
+  }
+  if (parentId) {
+    return { place_id: parentId, location_description: locationDescription, confidence: 'high' }
+  }
+  return { place_id: null, location_description: locationDescription, confidence: 'high' }
+}
+
+type Lang = 'en' | 'es'
+
 
 interface QueryResult {
   item_name: string
@@ -28,6 +595,7 @@ interface QueryResult {
   spot_key: string | null
   spot_detail: string | null
   location_description: string
+  place_id?: string | null
 }
 
 interface PendingUpdate {
@@ -41,15 +609,27 @@ interface PendingUpdate {
   category_key?: string
 }
 
+interface LocationPathSegment {
+  type: string
+  label: string
+  attributes?: Record<string, string>
+}
+
+interface NormalizedLocation {
+  location_path: LocationPathSegment[]
+  canonical_key: string
+}
+
 interface LLMIntent {
-  intent: 'STORE' | 'QUERY' | 'OTHER'
+  intent: 'STORE' | 'QUERY' | 'QUERY_LOCATION' | 'DESCRIBE_PLACE' | 'OTHER'
   language: Lang
   item_name?: string
-  room_key?: string
-  spot_key?: string
-  spot_detail?: string
-  category_key?: string
+  category?: string
   query_item?: string
+  query_location?: string
+  location_path?: LocationPathSegment[]
+  location_paths?: LocationPathSegment[][]
+  matched_place_id?: string | null
 }
 
 Deno.serve(async (req) => {
@@ -66,7 +646,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    const { message, householdId, confirm } = (await req.json()) as { message?: string; householdId?: string; confirm?: boolean }
+    const { message, householdId, confirm, confirmPlaceId } = (await req.json()) as { message?: string; householdId?: string; confirm?: boolean; confirmPlaceId?: string }
     if (!message || typeof message !== 'string' || !householdId || typeof householdId !== 'string') {
       return new Response(
         JSON.stringify({ error: 'Missing message or householdId' }),
@@ -113,43 +693,44 @@ Deno.serve(async (req) => {
 
     let intentResult: LLMIntent = { intent: 'OTHER', language: 'en' }
 
+    const { data: placesData } = await supabase
+      .from('places')
+      .select('id, label, canonical_key, parent_place_id')
+      .eq('household_id', householdId)
+    const placesListForSummary = (placesData ?? []) as Array<{ id: string; label: string; canonical_key: string | null; parent_place_id: string | null }>
+    const placesSummary = buildPlacesSummary(placesListForSummary)
+
     if (geminiKey) {
-      const systemPrompt = `You are a helpful butler that helps users remember where they store things at home.
+      const systemPrompt = `You are a helpful butler that helps users organize where they store things at home.
 You MUST respond with a JSON object only (no markdown, no extra text).
 
-**Language detection**: Detect whether the user is writing in English or Spanish.
-Set "language" to "en" or "es" accordingly.
+**LABELS RULE (most important)**: For "label" in location_path, you MUST use the user's EXACT words as written. Copy verbatim from their message. NEVER translate ("Despacho de Judit" is NOT "Oficina"). NEVER synonymize ("cajonera" is NOT "Cómoda"). NEVER paraphrase ("segundo cajón" is NOT "Cajón del Medio" — "segundo" means second, "del medio" means middle). WRONG: Oficina, Cómoda, Cajón del Medio. CORRECT: despacho de Judit, cajonera, segundo cajón.
 
-**Intent classification**: Classify the message into one of:
-- STORE: User is telling you where they put something.
-- QUERY: User is asking where something is.
-- OTHER: Small talk, unclear, or not about storing/finding things.
+**Language detection**: Detect whether the user is writing in English or Spanish. Set "language" to "en" or "es".
 
-**For STORE intents**, extract structured picklist keys:
-- "item_name": the item being stored (use the user's words)
-- "room_key": pick from [${ROOM_KEYS.join(', ')}] or use the user's custom text if none match
-- "spot_key": pick from [${SPOT_KEYS.join(', ')}] or use custom text. Optional.
-- "spot_detail": pick from [${SPOT_DETAIL_KEYS.join(', ')}] or use custom text. Optional.
-- "category_key": infer from context, pick from [${CATEGORY_KEYS.join(', ')}]. Optional.
+**Intent classification**:
+- STORE: User is telling you where they put something (e.g. "I put the keys in the drawer").
+- QUERY: User is asking where a specific item is (e.g. "where are my keys?").
+- QUERY_LOCATION: User is asking what is in a place (e.g. "what's in the table behind the sofa?").
+- DESCRIBE_PLACE: User is describing a place or hierarchy without storing an item (e.g. "There's a beige box on the small table behind the sofa", "El despacho de Judit tiene un escritorio con tres cajones").
+- OTHER: Small talk, unclear.
 
-**For QUERY intents**, extract:
-- "query_item": the item the user is asking about
+**Existing places** (use to match or disambiguate; return matched_place_id when the user clearly refers to one):
+${placesSummary || '(none yet)'}
 
-Examples:
-User (en): "I put the passport in the bedroom dresser top drawer"
--> {"intent":"STORE","language":"en","item_name":"passport","room_key":"bedroom","spot_key":"dresser","spot_detail":"top_drawer","category_key":"travel"}
+**For STORE**: Extract "item_name" (the item) and "location_path": array of { type, label, attributes? }. Types are free-form: room, desk, drawer, box, shelf, table, etc.
 
-User (es): "Dejé las llaves en la cocina, sobre la encimera"
--> {"intent":"STORE","language":"es","item_name":"llaves","room_key":"kitchen","spot_key":"counter","spot_detail":"on_top"}
+Labels must be exact substrings from the user's message. If they say "cajonera" write "cajonera", not "Cómoda". If they say "despacho de Judit" write "despacho de Judit", not "Oficina". If they say "segundo cajón" write "segundo cajón", not "Cajón del Medio".
 
-User (en): "Where are my keys?"
--> {"intent":"QUERY","language":"en","query_item":"keys"}
+If the description matches an existing place above, set "matched_place_id" to that place's id.
+Example: "I put the passport in the second drawer of Judit's desk" -> {"intent":"STORE","language":"en","item_name":"passport","location_path":[{"type":"desk","label":"Judit's desk"},{"type":"drawer","label":"second drawer"}]}
+Example (es): "En el segundo cajón de la cajonera del despacho de Judit están los Gomets" -> {"intent":"STORE","language":"es","item_name":"Gomets","location_path":[{"type":"room","label":"despacho de Judit"},{"type":"furniture","label":"cajonera"},{"type":"drawer","label":"segundo cajón"}]}
 
-User (es): "¿Dónde está el pasaporte?"
--> {"intent":"QUERY","language":"es","query_item":"pasaporte"}
-
-User: "Hello"
--> {"intent":"OTHER","language":"en"}
+**For QUERY**: Extract "query_item".
+**For QUERY_LOCATION**: Extract "query_location" (the place description).
+**For DESCRIBE_PLACE**: Extract "location_path" or "location_paths" (array of paths) for the place(s) and hierarchy being described. Use the user's EXACT words for "label" (no translation or synonymizing).
+Example: "The living room has a small table behind the sofa. On the table there's a beige box" -> {"intent":"DESCRIBE_PLACE","language":"en","location_paths":[[{"type":"room","label":"living room"},{"type":"furniture","label":"table","attributes":{"position":"behind sofa","size":"small"}},{"type":"box","label":"box","attributes":{"color":"beige"}}]]}
+Example (es): "En el Despacho de Judit hay una cajonera" -> {"intent":"DESCRIBE_PLACE","language":"es","location_paths":[[{"type":"room","label":"Despacho de Judit"},{"type":"furniture","label":"cajonera"}]]}
 
 Always respond with valid JSON only.`
 
@@ -164,7 +745,7 @@ Always respond with valid JSON only.`
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: systemPrompt }] },
             contents: [{ parts: [{ text: message }] }],
-            generationConfig: { temperature: 0.2 },
+            generationConfig: { temperature: 0.05 },
           }),
         }
       )
@@ -182,15 +763,26 @@ Always respond with valid JSON only.`
         if (jsonMatch) {
           try {
             const parsed = JSON.parse(jsonMatch[0])
+            let locPath = Array.isArray(parsed.location_path) ? parsed.location_path : undefined
+            let locPaths = Array.isArray(parsed.location_paths) ? parsed.location_paths : undefined
+            if (locPath?.length) {
+              locPath = fixLabelsFromMessage(locPath, message)
+            }
+            if (locPaths?.length) {
+              locPaths = locPaths.map((p: LocationPathSegment[]) =>
+                Array.isArray(p) && p.length ? fixLabelsFromMessage(p, message) : p
+              )
+            }
             intentResult = {
               intent: parsed.intent ?? 'OTHER',
               language: parsed.language === 'es' ? 'es' : 'en',
               item_name: parsed.item_name,
-              room_key: parsed.room_key,
-              spot_key: parsed.spot_key,
-              spot_detail: parsed.spot_detail,
-              category_key: parsed.category_key,
+              category: parsed.category,
               query_item: parsed.query_item,
+              query_location: parsed.query_location,
+              location_path: locPath,
+              location_paths: locPaths,
+              matched_place_id: parsed.matched_place_id,
             }
           } catch {
             intentResult = { intent: 'OTHER', language: 'en' }
@@ -198,109 +790,229 @@ Always respond with valid JSON only.`
         }
       }
     } else {
-      // Regex fallback — EN and ES patterns
       const lower = message.toLowerCase()
-
-      // Detect language
       const isSpanish = /(?:dejé|guardé|puse|dónde|está|están|por favor|tengo|las?|los?|el\s|en\s(?:el|la|los|las))/.test(lower)
       const lang: Lang = isSpanish ? 'es' : 'en'
 
-      // EN store patterns
       const storeMatchEn = lower.match(/(?:put|placed|stored|left)\s+(?:the\s+)?(.+?)\s+(?:in|on|under|by|at)\s+(?:the\s+)?(.+)/)
-      // ES store patterns
       const storeMatchEs = lower.match(/(?:dejé|guardé|puse|metí|coloqué)\s+(?:el|la|los|las|mi|mis)?\s*(.+?)\s+(?:en|sobre|bajo|debajo\s+de)\s+(?:el|la|los|las)?\s*(.+)/)
-
       const storeMatch = storeMatchEn || storeMatchEs
 
       if (storeMatch) {
+        const locStr = storeMatch[2].trim()
+        const path: LocationPathSegment[] = [{ type: 'place', label: locStr.replace(/\s+/g, ' ') }]
         intentResult = {
           intent: 'STORE',
           language: lang,
           item_name: storeMatch[1].trim(),
-          room_key: storeMatch[2].trim(),
+          location_path: path,
         }
       } else {
-        // EN query patterns
         const queryMatchEn = lower.match(/\bwhere\s+(?:is|are)\s+(?:the\s+|my\s+)?(.+?)\??$/)
-        // ES query patterns
         const queryMatchEs = lower.match(/(?:dónde|donde)\s+(?:está|están|dejé|guardé|puse)\s+(?:el|la|los|las|mi|mis)?\s*(.+?)\??$/)
-
         const queryMatch = queryMatchEn || queryMatchEs
         if (queryMatch) {
           const q = queryMatch[1].trim()
           if (q) intentResult = { intent: 'QUERY', language: lang, query_item: q }
         } else {
-          intentResult = { intent: 'OTHER', language: lang }
+          const queryLocEn = lower.match(/(?:what'?s?|what is)\s+in\s+(?:the\s+)?(.+?)\??$/)
+          const queryLocEs = lower.match(/(?:qué|que)\s+hay\s+en\s+(?:el|la|los|las)?\s*(.+?)\??$/)
+          const queryLocMatch = queryLocEn || queryLocEs
+          if (queryLocMatch) {
+            const loc = queryLocMatch[1].trim()
+            if (loc) intentResult = { intent: 'QUERY_LOCATION', language: lang, query_location: loc }
+          } else {
+            intentResult = { intent: 'OTHER', language: lang }
+          }
         }
       }
     }
 
     const lang = intentResult.language
     let reply: string
-    let locationRef: { room_key: string; spot_key?: string } | undefined
-    let newTags: NewTag[] | undefined
+    let locationRef: { room_key?: string; spot_key?: string; place_id?: string; place_label?: string } | undefined
     let queryResults: QueryResult[] | undefined
     let pendingUpdate: PendingUpdate | undefined
+    let pendingPlaceMatch: { suggestedPlaceId: string; suggestedPlaceLabel: string; locationPath: LocationPathSegment[]; confidence: 'low' | 'medium' } | undefined
 
-    if (intentResult.intent === 'STORE' && intentResult.item_name && intentResult.room_key) {
+    if (intentResult.intent === 'QUERY_LOCATION' && intentResult.query_location) {
+      const locDesc = intentResult.query_location.trim()
+      let normalized: NormalizedLocation | null = null
+      if (geminiKey) {
+        normalized = await normalizeLocationViaLLM(locDesc, geminiKey)
+      }
+      if (!normalized) {
+        const simpleKey = locDesc.toLowerCase().replace(/\s+/g, '_').replace(/^(the|el|la|los|las)\_?/, '')
+        normalized = {
+          location_path: [{ type: 'furniture', label: simpleKey }],
+          canonical_key: `furniture:${simpleKey}`,
+        }
+      }
+      if (normalized) {
+        const { data: places } = await supabase
+          .from('places')
+          .select('id, canonical_key, label, type, parent_place_id')
+          .eq('household_id', householdId)
+        const allPlaces = (places ?? []) as Array<{ id: string; canonical_key: string | null; label: string; type: string; parent_place_id: string | null }>
+        const matching = allPlaces.filter(
+          (p) =>
+            p.canonical_key && (p.canonical_key === normalized.canonical_key || normalized.canonical_key.includes(p.canonical_key) || p.canonical_key.includes(normalized.canonical_key))
+        )
+        const placeIds = new Set<string>()
+        function addDescendants(pid: string) {
+          placeIds.add(pid)
+          for (const p of allPlaces) {
+            if (p.parent_place_id === pid) addDescendants(p.id)
+          }
+        }
+        for (const p of matching) addDescendants(p.id)
+        if (placeIds.size > 0) {
+          const { data: rows } = await supabase
+            .from('storage_entries')
+            .select('id, item_name, location_description, room_key, spot_key, spot_detail, place_id')
+            .eq('household_id', householdId)
+            .in('place_id', [...placeIds])
+          if (rows && rows.length > 0) {
+            queryResults = rows.map((r: { item_name: string; room_key: string | null; spot_key: string | null; spot_detail: string | null; location_description: string; place_id: string | null }) => ({
+              item_name: r.item_name,
+              room_key: r.room_key,
+              spot_key: r.spot_key,
+              spot_detail: r.spot_detail,
+              location_description: r.location_description,
+              place_id: r.place_id,
+            }))
+            const locLabel = matching[0] ? (matching[0] as { label: string }).label : locDesc
+            reply = lang === 'es'
+              ? `En ${locLabel}: ${rows.map((r: { item_name: string }) => r.item_name).join(', ')}`
+              : `In ${locLabel}: ${rows.map((r: { item_name: string }) => r.item_name).join(', ')}`
+            locationRef = { place_id: matching[0].id, place_label: matching[0].label }
+          } else {
+            reply = lang === 'es'
+              ? `No tengo nada registrado en ese lugar.`
+              : "I don't have anything stored there."
+          }
+        } else {
+          const { data: rows } = await supabase
+            .from('storage_entries')
+            .select('id, item_name, location_description, room_key, spot_key, spot_detail, place_id')
+            .eq('household_id', householdId)
+            .ilike('location_description', `%${locDesc.split(/\s+/)[0]}%`)
+          if (rows && rows.length > 0) {
+            queryResults = rows.map((r: { item_name: string; room_key: string | null; spot_key: string | null; spot_detail: string | null; location_description: string; place_id: string | null }) => ({
+              item_name: r.item_name,
+              room_key: r.room_key,
+              spot_key: r.spot_key,
+              spot_detail: r.spot_detail,
+              location_description: r.location_description,
+              place_id: r.place_id,
+            }))
+            reply = lang === 'es'
+              ? `Encontré: ${rows.map((r: { item_name: string }) => r.item_name).join(', ')}`
+              : `Found: ${rows.map((r: { item_name: string }) => r.item_name).join(', ')}`
+          } else {
+            reply = lang === 'es'
+              ? 'No tengo nada registrado en ese lugar.'
+              : "I don't have anything stored there."
+          }
+        }
+      } else {
+        reply = lang === 'es'
+          ? 'No pude entender ese lugar. ¿Puedes describirlo de otra forma?'
+          : "I couldn't understand that location. Can you describe it differently?"
+      }
+      return new Response(JSON.stringify({ reply, language: lang, locationRef, queryResults }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (intentResult.intent === 'DESCRIBE_PLACE' && (intentResult.location_path?.length || (intentResult.location_paths?.length ?? 0) > 0)) {
+      const paths = intentResult.location_paths ?? (intentResult.location_path ? [intentResult.location_path] : [])
+      const createdLabels: string[] = []
+      for (const path of paths) {
+        if (path.length === 0) continue
+        const placeResult = await resolveOrCreatePlace(supabase, householdId, path, true, intentResult.matched_place_id ?? null, placesSummary, geminiKey)
+        if ('place_id' in placeResult && placeResult.place_id) {
+          createdLabels.push(placeResult.location_description)
+        }
+      }
+      if (createdLabels.length > 0) {
+        reply = lang === 'es'
+          ? `Entendido, he anotado: ${createdLabels.join('; ')}`
+          : `Got it, I've noted: ${createdLabels.join('; ')}`
+      } else {
+        reply = lang === 'es'
+          ? 'No pude interpretar ese lugar. ¿Puedes describirlo de otra forma?'
+          : "I couldn't understand that place. Can you describe it differently?"
+      }
+      return new Response(JSON.stringify({ reply, language: lang }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (intentResult.intent === 'STORE' && intentResult.item_name && intentResult.location_path && intentResult.location_path.length > 0) {
+      const originalItemName = intentResult.item_name.trim()
       const itemName = normalizeItem(intentResult.item_name)
-      const locationDesc = buildLocationString(
-        intentResult.room_key,
-        intentResult.spot_key,
-        intentResult.spot_detail,
-        'en' // always store English for location_description column
-      )
+      const locationPath = intentResult.location_path
+      let placeResult: Awaited<ReturnType<typeof resolveOrCreatePlace>>
+      if (confirmPlaceId) {
+        const { data: place } = await supabase.from('places').select('id, label').eq('id', confirmPlaceId).eq('household_id', householdId).single()
+        if (place) {
+          placeResult = { place_id: place.id, location_description: place.label, confidence: 'high' as const }
+        } else {
+          placeResult = await resolveOrCreatePlace(supabase, householdId, locationPath, true, null, placesSummary, geminiKey)
+        }
+      } else {
+        placeResult = await resolveOrCreatePlace(supabase, householdId, locationPath, !!confirm, intentResult.matched_place_id ?? null, placesSummary, geminiKey)
+      }
+      if ('suggestedPlaceId' in placeResult) {
+        reply = lang === 'es'
+          ? `¿Te refieres al lugar "${placeResult.suggestedPlaceLabel}"? Confirma para guardar ahí.`
+          : `Do you mean the place "${placeResult.suggestedPlaceLabel}"? Confirm to save there.`
+        pendingPlaceMatch = {
+          suggestedPlaceId: placeResult.suggestedPlaceId,
+          suggestedPlaceLabel: placeResult.suggestedPlaceLabel,
+          locationPath: placeResult.locationPath,
+          confidence: placeResult.confidence,
+        }
+        return new Response(JSON.stringify({ reply, language: lang, pendingPlaceMatch }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      const locationDesc = 'place_id' in placeResult ? placeResult.location_description : buildLocationDescFromPath(locationPath)
 
-      const translatedLocation = buildLocationString(
-        intentResult.room_key,
-        intentResult.spot_key,
-        intentResult.spot_detail,
-        lang
-      )
-
-      const writeData = {
+      const writeData: Record<string, unknown> = {
         location_description: locationDesc,
-        room_key: intentResult.room_key,
-        spot_key: intentResult.spot_key ?? null,
-        spot_detail: intentResult.spot_detail ?? null,
-        category_key: intentResult.category_key ?? null,
+        room_key: null,
+        spot_key: null,
+        spot_detail: null,
+        category_key: intentResult.category ?? null,
         updated_at: new Date().toISOString(),
         created_by: user.id,
+      }
+      if ('place_id' in placeResult && placeResult.place_id) {
+        writeData.place_id = placeResult.place_id
       }
 
       const { data: existing } = await supabase
         .from('storage_entries')
-        .select('id, room_key, spot_key, spot_detail, location_description')
+        .select('id, location_description')
         .eq('household_id', householdId)
         .ilike('item_name', itemName)
         .limit(1)
         .maybeSingle()
-
-      // Overwrite confirmation: if item exists with different location and confirm not set
       if (existing && !confirm) {
-        const oldLocation = buildLocationString(
-          existing.room_key,
-          existing.spot_key,
-          existing.spot_detail,
-          lang
-        ) || existing.location_description
-
-        // Check if location actually changed
-        const newLoc = translatedLocation
-        if (oldLocation !== newLoc) {
+        const oldLocation = existing.location_description ?? ''
+        if (oldLocation !== locationDesc) {
           reply = lang === 'es'
-            ? `${intentResult.item_name} está actualmente en ${oldLocation}. ¿Mover a ${newLoc}?`
-            : `${intentResult.item_name} is currently in ${oldLocation}. Move to ${newLoc}?`
+            ? `${intentResult.item_name} está actualmente en ${oldLocation}. ¿Mover a ${locationDesc}?`
+            : `${intentResult.item_name} is currently in ${oldLocation}. Move to ${locationDesc}?`
 
           pendingUpdate = {
             entryId: existing.id,
             oldLocation,
-            newLocation: newLoc,
+            newLocation: locationDesc,
             item_name: intentResult.item_name,
-            room_key: intentResult.room_key,
-            spot_key: intentResult.spot_key,
-            spot_detail: intentResult.spot_detail,
-            category_key: intentResult.category_key,
+            room_key: locationDesc,
           }
 
           return new Response(JSON.stringify({ reply, language: lang, pendingUpdate }), {
@@ -308,6 +1020,13 @@ Always respond with valid JSON only.`
           })
         }
       }
+
+      let conceptResolution: ConceptResolution | null = null
+      if (geminiKey) {
+        conceptResolution = await ensureConceptForItem(supabase, householdId, originalItemName, geminiKey)
+      }
+
+      let entryIdForConcept: string | null = existing?.id ?? null
 
       // Proceed with the write
       let dbError = false
@@ -317,9 +1036,9 @@ Always respond with valid JSON only.`
           await supabase.from('location_history').insert({
             entry_id: existing.id,
             household_id: householdId,
-            room_key: existing.room_key,
-            spot_key: existing.spot_key,
-            spot_detail: existing.spot_detail,
+            room_key: null,
+            spot_key: null,
+            spot_detail: null,
             location_description: existing.location_description,
             moved_by: user.id,
           })
@@ -333,14 +1052,20 @@ Always respond with valid JSON only.`
           .eq('id', existing.id)
         if (updateErr) dbError = true
       } else {
-        const { error: insertErr } = await supabase
+        const { data: inserted, error: insertErr } = await supabase
           .from('storage_entries')
           .insert({
             household_id: householdId,
             item_name: itemName,
             ...writeData,
           })
-        if (insertErr) dbError = true
+          .select('id')
+          .single()
+        if (insertErr) {
+          dbError = true
+        } else if (inserted) {
+          entryIdForConcept = inserted.id as string
+        }
       }
 
       if (dbError) {
@@ -349,83 +1074,91 @@ Always respond with valid JSON only.`
           : "I couldn't save that. Please try again."
       } else {
         reply = lang === 'es'
-          ? `Entendido, recordaré que ${intentResult.item_name} está en ${translatedLocation}.`
-          : `Got it, I'll remember that ${intentResult.item_name} is in ${translatedLocation}.`
+          ? `Entendido, recordaré que ${intentResult.item_name} está en ${locationDesc}.`
+          : `Got it, I'll remember that ${intentResult.item_name} is in ${locationDesc}.`
 
-        locationRef = {
-          room_key: intentResult.room_key,
-          ...(intentResult.spot_key ? { spot_key: intentResult.spot_key } : {}),
+        if ('place_id' in placeResult && placeResult.place_id) {
+          locationRef = { place_id: placeResult.place_id, place_label: locationDesc }
         }
 
-        // Detect custom (non-picklist) location values
-        const candidates: NewTag[] = []
-        if (isCustomRoom(intentResult.room_key)) {
-          candidates.push({ type: 'room', key: intentResult.room_key, label: intentResult.room_key })
-        }
-        if (isCustomSpot(intentResult.spot_key)) {
-          candidates.push({ type: 'spot', key: intentResult.spot_key!, label: intentResult.spot_key! })
-        }
-        if (isCustomDetail(intentResult.spot_detail)) {
-          candidates.push({ type: 'detail', key: intentResult.spot_detail!, label: intentResult.spot_detail! })
-        }
-
-        if (candidates.length > 0) {
-          // Filter out tags already saved for this household
-          const { data: savedTags } = await supabase
-            .from('household_tags')
-            .select('tag_type, tag_key')
-            .eq('household_id', householdId)
-
-          const savedSet = new Set(
-            (savedTags ?? []).map((t: { tag_type: string; tag_key: string }) => `${t.tag_type}:${t.tag_key}`)
-          )
-          const unsaved = candidates.filter((c) => !savedSet.has(`${c.type}:${c.key}`))
-          if (unsaved.length > 0) {
-            newTags = unsaved
+        if (conceptResolution && entryIdForConcept) {
+          try {
+            await linkEntryToConcept(supabase, householdId, entryIdForConcept, conceptResolution.conceptId)
+          } catch {
+            // Non-critical failure; continue without blocking reply
           }
         }
       }
     } else if (intentResult.intent === 'QUERY' && intentResult.query_item) {
       const search = normalizeItem(intentResult.query_item)
-      const { data: rows } = await supabase
-        .from('storage_entries')
-        .select('id, item_name, location_description, room_key, spot_key, spot_detail')
-        .eq('household_id', householdId)
-        .ilike('item_name', `%${search}%`)
-        .order('updated_at', { ascending: false })
-        .limit(5)
+      await backfillMissingConcepts(supabase, householdId, geminiKey)
+      const conceptContext = await resolveConceptIdsForQuery(supabase, householdId, intentResult.query_item, geminiKey)
+      let rows: Array<{ id: string; item_name: string; location_description: string; place_id?: string | null }> = []
 
-      if (rows && rows.length > 0) {
-        // Build query results array
-        queryResults = rows.map((row: { item_name: string; room_key: string | null; spot_key: string | null; spot_detail: string | null; location_description: string }) => ({
+      if (conceptContext?.conceptIds?.length) {
+        const { data: entryLinks } = await supabase
+          .from('storage_entry_concepts')
+          .select('entry_id')
+          .eq('household_id', householdId)
+          .in('concept_id', conceptContext.conceptIds)
+
+        const mappedIds = (entryLinks ?? [])
+          .map((link: { entry_id: string | null }) => link.entry_id)
+          .filter((id): id is string => typeof id === 'string' && id.length > 0)
+        const entryIds = Array.from(new Set(mappedIds))
+
+        if (entryIds.length > 0) {
+          const limitedEntryIds = entryIds.slice(0, 20)
+          const { data: conceptRows } = await supabase
+            .from('storage_entries')
+            .select('id, item_name, location_description, place_id')
+            .eq('household_id', householdId)
+            .in('id', limitedEntryIds)
+            .order('updated_at', { ascending: false })
+            .limit(20)
+
+          if (conceptRows && conceptRows.length > 0) {
+            rows = conceptRows as typeof rows
+          }
+        }
+      }
+
+      if (rows.length === 0) {
+        const { data: fallbackRows } = await supabase
+          .from('storage_entries')
+          .select('id, item_name, location_description, place_id')
+          .eq('household_id', householdId)
+          .ilike('item_name', `%${search}%`)
+          .order('updated_at', { ascending: false })
+          .limit(5)
+        rows = fallbackRows ?? []
+      }
+
+      if (rows.length > 0) {
+        queryResults = rows.map((row) => ({
           item_name: row.item_name,
-          room_key: row.room_key,
-          spot_key: row.spot_key,
-          spot_detail: row.spot_detail,
+          room_key: null,
+          spot_key: null,
+          spot_detail: null,
           location_description: row.location_description,
+          place_id: row.place_id,
         }))
 
         if (rows.length === 1) {
           const row = rows[0]
-          const translatedLocation = row.room_key
-            ? buildLocationString(row.room_key, row.spot_key, row.spot_detail, lang)
-            : row.location_description
+          const loc = row.location_description
 
-          // Fetch location history for "previously" note
           let previousNote = ''
           try {
             const { data: history } = await supabase
               .from('location_history')
-              .select('room_key, spot_key, spot_detail, location_description')
+              .select('location_description')
               .eq('entry_id', row.id)
               .order('moved_at', { ascending: false })
               .limit(1)
 
             if (history && history.length > 0) {
-              const prev = history[0]
-              const prevLocation = prev.room_key
-                ? buildLocationString(prev.room_key, prev.spot_key, prev.spot_detail, lang)
-                : prev.location_description
+              const prevLocation = history[0].location_description
               previousNote = lang === 'es'
                 ? ` (Anteriormente: ${prevLocation})`
                 : ` (Previously: ${prevLocation})`
@@ -434,37 +1167,41 @@ Always respond with valid JSON only.`
             // Non-critical
           }
 
-          reply = lang === 'es'
-            ? `${row.item_name} está en ${translatedLocation}.${previousNote}`
-            : `${row.item_name} is in ${translatedLocation}.${previousNote}`
+          const prefix = conceptContext?.matchedLabel
+            ? (lang === 'es' ? `Dentro de ${conceptContext.matchedLabel}: ` : `Within ${conceptContext.matchedLabel}: `)
+            : ''
 
-          locationRef = {
-            room_key: row.room_key ?? row.location_description,
-            ...(row.spot_key ? { spot_key: row.spot_key } : {}),
-          }
+          reply = lang === 'es'
+            ? `${prefix}${row.item_name} está en ${loc}.${previousNote}`
+            : `${prefix}${row.item_name} is in ${loc}.${previousNote}`
+
+          locationRef = row.place_id ? { place_id: row.place_id, place_label: loc } : undefined
         } else {
-          // Multiple results
-          const lines = rows.map((row: { item_name: string; room_key: string | null; spot_key: string | null; spot_detail: string | null; location_description: string }) => {
-            const loc = row.room_key
-              ? buildLocationString(row.room_key, row.spot_key, row.spot_detail, lang)
-              : row.location_description
+          const lines = rows.map((row) => {
+            const loc = row.location_description
             return `- **${row.item_name}** → ${loc}`
           })
 
-          const countLabel = lang === 'es' ? `Encontré ${rows.length} coincidencias:` : `I found ${rows.length} matches:`
-          reply = `${countLabel}\n${lines.join('\n')}`
+          const baseLabel = lang === 'es' ? `Encontré ${rows.length} coincidencias` : `I found ${rows.length} matches`
+          const contextLabel = conceptContext?.matchedLabel
+            ? lang === 'es'
+              ? `${baseLabel} para "${conceptContext.matchedLabel}":`
+              : `${baseLabel} for "${conceptContext.matchedLabel}":`
+            : `${baseLabel}:`
 
-          // Use first result for locationRef
+          reply = `${contextLabel}\n${lines.join('\n')}`
+
           const first = rows[0]
-          locationRef = {
-            room_key: first.room_key ?? first.location_description,
-            ...(first.spot_key ? { spot_key: first.spot_key } : {}),
-          }
+          locationRef = first.place_id ? { place_id: first.place_id, place_label: first.location_description } : undefined
         }
       } else {
-        reply = lang === 'es'
-          ? 'No tengo registrado un lugar para eso.'
-          : "I don't have a stored place for that."
+        reply = conceptContext?.matchedLabel
+          ? lang === 'es'
+            ? `No tengo nada guardado bajo ${conceptContext.matchedLabel}.`
+            : `I don't have anything stored under ${conceptContext.matchedLabel}.`
+          : lang === 'es'
+            ? 'No tengo registrado un lugar para eso.'
+            : "I don't have a stored place for that."
       }
     } else {
       reply = lang === 'es'
@@ -472,7 +1209,7 @@ Always respond with valid JSON only.`
         : 'I can remember where you put things or tell you where something is. Try: "Keys are in the drawer" or "Where are the keys?"'
     }
 
-    return new Response(JSON.stringify({ reply, language: lang, locationRef, newTags, queryResults, pendingUpdate }), {
+    return new Response(JSON.stringify({ reply, language: lang, locationRef, queryResults, pendingUpdate, pendingPlaceMatch }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {

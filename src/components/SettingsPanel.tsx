@@ -3,8 +3,6 @@ import { X, Copy, Check, LogOut, MapPin } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
-import { useHouseholdTags } from '../hooks/useHouseholdTags'
-import { LocationsEditor } from './LocationsEditor'
 import type { Household } from '../types'
 import './SettingsPanel.css'
 
@@ -14,6 +12,7 @@ interface SettingsPanelProps {
   selectedId: string
   onSelectHousehold: (id: string) => void
   onClose: () => void
+  onNavigateToLocations?: () => void
 }
 
 interface MemberInfo {
@@ -22,12 +21,10 @@ interface MemberInfo {
   email?: string
 }
 
-export function SettingsPanel({ household, households, selectedId, onSelectHousehold, onClose }: SettingsPanelProps) {
+export function SettingsPanel({ household, households, selectedId, onSelectHousehold, onClose, onNavigateToLocations }: SettingsPanelProps) {
   const { language, setLanguage } = useLanguage()
   const [copied, setCopied] = useState(false)
   const [members, setMembers] = useState<MemberInfo[]>([])
-  const [showLocations, setShowLocations] = useState(false)
-  const { tags, saveTag, updateTag, deleteTag } = useHouseholdTags(household.id)
 
   useEffect(() => {
     supabase
@@ -56,23 +53,6 @@ export function SettingsPanel({ household, households, selectedId, onSelectHouse
 
   async function handleSignOut() {
     await supabase.auth.signOut()
-  }
-
-  if (showLocations) {
-    return (
-      <>
-        <div className="settings-overlay" onClick={onClose} />
-        <div className="settings-panel">
-          <LocationsEditor
-            tags={tags}
-            onSaveTag={saveTag}
-            onUpdateTag={updateTag}
-            onDeleteTag={deleteTag}
-            onBack={() => setShowLocations(false)}
-          />
-        </div>
-      </>
-    )
   }
 
   return (
@@ -157,12 +137,14 @@ export function SettingsPanel({ household, households, selectedId, onSelectHouse
         </div>
 
         {/* Manage locations */}
-        <div className="settings-panel__section">
-          <button className="settings-panel__manage-locations" onClick={() => setShowLocations(true)}>
-            <MapPin size={16} />
-            {ui('settings.manage_locations', language)}
-          </button>
-        </div>
+        {onNavigateToLocations && (
+          <div className="settings-panel__section">
+            <button className="settings-panel__manage-locations" onClick={() => { onNavigateToLocations(); onClose(); }}>
+              <MapPin size={16} />
+              {ui('settings.manage_locations', language)}
+            </button>
+          </div>
+        )}
 
         {/* Sign out */}
         <div className="settings-panel__section">

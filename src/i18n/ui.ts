@@ -7,15 +7,17 @@ const strings: Record<string, { en: string; es: string }> = {
   // Bottom Nav
   'nav.chat': { en: 'Chat', es: 'Chat' },
   'nav.items': { en: 'Items', es: 'Objetos' },
+  'nav.locations': { en: 'Locations', es: 'Ubicaciones' },
   'nav.search': { en: 'Search', es: 'Buscar' },
 
   // Chat
-  'chat.placeholder': { en: 'Tell Jeeves where you put something\u2026', es: 'Dile a Jeeves d\u00f3nde guardaste algo\u2026' },
+  'chat.placeholder': { en: 'Tell WheresIt where you put something\u2026', es: 'Dile a WheresIt d\u00f3nde guardaste algo\u2026' },
   'chat.error_apology': {
     en: "I'm terribly sorry, sir. I couldn't process that. Please try again.",
     es: 'Lo siento mucho. No pude procesar eso. Por favor, int\u00e9ntelo de nuevo.',
   },
   'chat.suggestion_prefix': { en: 'Where is', es: 'D\u00f3nde est\u00e1' },
+  'chat.loading': { en: 'Remembering where it is\u2026', es: 'Recordando d\u00f3nde est\u00e1\u2026' },
 
   // MessageList empty state
   'empty.title': { en: 'Good evening, sir.', es: 'Buenas noches, se\u00f1or.' },
@@ -133,6 +135,12 @@ const strings: Record<string, { en: string; es: string }> = {
   'locations.delete_confirm': { en: 'Delete this location?', es: '\u00bfEliminar esta ubicaci\u00f3n?' },
   'locations.drag_hint': { en: 'Drag containers between rooms', es: 'Arrastra contenedores entre habitaciones' },
   'settings.manage_locations': { en: 'Manage locations', es: 'Gestionar ubicaciones' },
+  'locations.tab_title': { en: 'Places', es: 'Lugares' },
+  'locations.empty': { en: 'No places yet. Add places via chat or here.', es: 'Aún no hay lugares. Añade lugares por chat o aquí.' },
+  'locations.add_place': { en: 'Add place', es: 'Añadir lugar' },
+  'locations.move_to': { en: 'Move to', es: 'Mover a' },
+  'locations.edit': { en: 'Edit', es: 'Editar' },
+  'locations.delete': { en: 'Delete', es: 'Eliminar' },
 }
 
 /**

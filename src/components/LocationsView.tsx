@@ -1,0 +1,276 @@
+import { useState } from 'react'
+import { ChevronRight, Plus, Pencil, Trash2, GripVertical } from 'lucide-react'
+import { usePlaces, type PlaceWithChildren } from '../hooks/usePlaces'
+import { useStorageEntries } from '../hooks/useStorageEntries'
+import { useLanguage } from '../i18n/LanguageContext'
+import { ui } from '../i18n/ui'
+import type { LocationRef } from '../types'
+import './LocationsView.css'
+
+interface LocationsViewProps {
+  householdId: string
+  onNavigateToItems?: (filter: LocationRef) => void
+}
+
+function PlaceNode({
+  place,
+  depth,
+  allPlaces,
+  itemCount,
+  placeIdToPlace,
+  onEdit,
+  onDelete,
+  onMove,
+  onNavigateToItems,
+}: {
+  place: PlaceWithChildren
+  depth: number
+  allPlaces: PlaceWithChildren[]
+  itemCount: (placeId: string) => number
+  placeIdToPlace: Map<string, PlaceWithChildren>
+  onEdit: (p: PlaceWithChildren) => void
+  onDelete: (p: PlaceWithChildren) => void
+  onMove: (p: PlaceWithChildren, newParentId: string | null) => void
+  onNavigateToItems?: (filter: LocationRef) => void
+}) {
+  const [collapsed, setCollapsed] = useState(false)
+  const [showMove, setShowMove] = useState(false)
+  const count = itemCount(place.id) + place.children.reduce((s, c) => s + itemCount(c.id), 0)
+
+  return (
+    <div className="locations-view__node" style={{ paddingLeft: depth * 16 }}>
+      <div className="locations-view__row">
+        <button
+          className="locations-view__expand"
+          onClick={() => setCollapsed(!collapsed)}
+          aria-label={collapsed ? 'Expand' : 'Collapse'}
+        >
+          <ChevronRight
+            size={14}
+            className={`locations-view__chevron ${!collapsed ? 'locations-view__chevron--open' : ''}`}
+          />
+        </button>
+        <GripVertical size={12} className="locations-view__grip" />
+        <div className="locations-view__info">
+          {onNavigateToItems ? (
+            <button
+              type="button"
+              className="locations-view__label locations-view__label--link"
+              onClick={() => onNavigateToItems({ place_id: place.id, place_label: place.label })}
+            >
+              {place.label}
+            </button>
+          ) : (
+            <span className="locations-view__label">{place.label}</span>
+          )}
+          <span className="locations-view__meta">
+            {place.type}
+            {Object.keys(place.attributes ?? {}).length > 0 && (
+              <> · {Object.entries(place.attributes ?? {}).map(([k, v]) => `${k}: ${v}`).join(', ')}</>
+            )}
+            {count > 0 && <> · {count} items</>}
+          </span>
+        </div>
+        <div className="locations-view__actions">
+          <button
+            className="locations-view__action"
+            onClick={() => setShowMove(!showMove)}
+            title={ui('locations.move_to', useLanguage().language)}
+          >
+            <GripVertical size={14} />
+          </button>
+          <button className="locations-view__action" onClick={() => onEdit(place)} title={ui('locations.edit', useLanguage().language)}>
+            <Pencil size={12} />
+          </button>
+          <button className="locations-view__action locations-view__action--danger" onClick={() => onDelete(place)} title={ui('locations.delete', useLanguage().language)}>
+            <Trash2 size={12} />
+          </button>
+        </div>
+      </div>
+      {showMove && (
+        <div className="locations-view__move-panel">
+          {allPlaces.filter((p) => p.id !== place.id && !isDescendant(p, place.id, placeIdToPlace)).map((p) => (
+            <button key={p.id} className="locations-view__move-opt" onClick={() => { onMove(place, p.id); setShowMove(false) }}>
+              → {p.label}
+            </button>
+          ))}
+          <button className="locations-view__move-opt" onClick={() => { onMove(place, null); setShowMove(false) }}>
+            → Root
+          </button>
+        </div>
+      )}
+      {!collapsed && place.children.length > 0 && (
+        <div className="locations-view__children">
+          {place.children.map((child) => (
+            <PlaceNode
+              key={child.id}
+              place={child}
+              depth={depth + 1}
+              allPlaces={allPlaces}
+              itemCount={itemCount}
+              placeIdToPlace={placeIdToPlace}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onMove={onMove}
+              onNavigateToItems={onNavigateToItems}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function isDescendant(place: PlaceWithChildren, ancestorId: string, byId: Map<string, PlaceWithChildren>): boolean {
+  let pid: string | null = place.parent_place_id
+  while (pid) {
+    if (pid === ancestorId) return true
+    pid = byId.get(pid)?.parent_place_id ?? null
+  }
+  return false
+}
+
+function flattenTree(tree: PlaceWithChildren[]): PlaceWithChildren[] {
+  const out: PlaceWithChildren[] = []
+  function walk(nodes: PlaceWithChildren[]) {
+    for (const n of nodes) {
+      out.push(n)
+      walk(n.children)
+    }
+  }
+  walk(tree)
+  return out
+}
+
+export function LocationsView({ householdId, onNavigateToItems }: LocationsViewProps) {
+  const { placeTree, loading, createPlace, updatePlace, movePlace, deletePlace, refetch } = usePlaces(householdId)
+  const { entries } = useStorageEntries(householdId)
+  const { language } = useLanguage()
+  const [adding, setAdding] = useState(false)
+  const [newType, setNewType] = useState('room')
+  const [newLabel, setNewLabel] = useState('')
+  const [editing, setEditing] = useState<PlaceWithChildren | null>(null)
+  const [editLabel, setEditLabel] = useState('')
+  const [editAttributes, setEditAttributes] = useState('')
+
+  const itemCountByPlace = (placeId: string) => entries.filter((e) => e.place_id === placeId).length
+  const allPlacesFlat = flattenTree(placeTree)
+  const placeIdToPlace = new Map(allPlacesFlat.map((p) => [p.id, p]))
+
+  async function handleAdd() {
+    const label = newLabel.trim()
+    if (!label) return
+    const { error } = await createPlace({ type: newType, label })
+    if (!error) {
+      setNewLabel('')
+      setAdding(false)
+      refetch()
+    }
+  }
+
+  async function handleSaveEdit() {
+    if (!editing) return
+    const attrs: Record<string, string> = {}
+    for (const part of editAttributes.split(',').map((s) => s.trim()).filter(Boolean)) {
+      const [k, v] = part.split(':').map((s) => s.trim())
+      if (k && v) attrs[k] = v
+    }
+    await updatePlace(editing.id, { label: editLabel.trim(), attributes: attrs })
+    setEditing(null)
+    refetch()
+  }
+
+  async function handleDelete(p: PlaceWithChildren) {
+    if (!window.confirm(ui('locations.delete_confirm', language))) return
+    await deletePlace(p.id)
+    refetch()
+  }
+
+  async function handleMove(p: PlaceWithChildren, newParentId: string | null) {
+    await movePlace(p.id, newParentId)
+    refetch()
+  }
+
+  return (
+    <div className="locations-view">
+      <div className="locations-view__header">
+        <h1 className="locations-view__title">{ui('locations.tab_title', language)}</h1>
+        <button className="locations-view__add-btn" onClick={() => setAdding(true)}>
+          <Plus size={16} />
+          {ui('locations.add_place', language)}
+        </button>
+      </div>
+      {adding && (
+        <div className="locations-view__form">
+          <select value={newType} onChange={(e) => setNewType(e.target.value)} className="locations-view__select">
+            <option value="room">Room</option>
+            <option value="furniture">Furniture</option>
+            <option value="shelf">Shelf</option>
+            <option value="drawer">Drawer</option>
+            <option value="box">Box</option>
+            <option value="folder">Folder</option>
+          </select>
+          <input
+            className="locations-view__input"
+            placeholder="Label"
+            value={newLabel}
+            onChange={(e) => setNewLabel(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+          />
+          <button className="locations-view__submit" onClick={handleAdd}>
+            Add
+          </button>
+          <button className="locations-view__cancel" onClick={() => setAdding(false)}>
+            Cancel
+          </button>
+        </div>
+      )}
+      {editing && (
+        <div className="locations-view__form">
+          <input
+            className="locations-view__input"
+            value={editLabel}
+            onChange={(e) => setEditLabel(e.target.value)}
+            placeholder="Label"
+          />
+          <input
+            className="locations-view__input"
+            value={editAttributes}
+            onChange={(e) => setEditAttributes(e.target.value)}
+            placeholder="color: beige, position: behind sofa"
+          />
+          <button className="locations-view__submit" onClick={handleSaveEdit}>
+            Save
+          </button>
+          <button className="locations-view__cancel" onClick={() => setEditing(null)}>
+            Cancel
+          </button>
+        </div>
+      )}
+      <div className="locations-view__body">
+        {loading ? (
+          <p className="locations-view__empty">Loading…</p>
+        ) : placeTree.length === 0 ? (
+          <p className="locations-view__empty">{ui('locations.empty', language)}</p>
+        ) : (
+          <div className="locations-view__tree">
+            {placeTree.map((place) => (
+              <PlaceNode
+                key={place.id}
+                place={place}
+                depth={0}
+                allPlaces={allPlacesFlat}
+                itemCount={itemCountByPlace}
+                placeIdToPlace={placeIdToPlace}
+                onEdit={(p) => { setEditing(p); setEditLabel(p.label); setEditAttributes(Object.entries(p.attributes ?? {}).map(([k, v]) => `${k}: ${v}`).join(', ')) }}
+                onDelete={handleDelete}
+                onMove={handleMove}
+                onNavigateToItems={onNavigateToItems}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

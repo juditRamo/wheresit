@@ -3,10 +3,10 @@ import { Mic, Send } from 'lucide-react'
 import { MessageList } from './MessageList'
 import { sendChatMessage } from '../api/chat'
 import { useStoredItems } from '../hooks/useStoredItems'
-import { useHouseholdTags } from '../hooks/useHouseholdTags'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
-import type { ChatMessage, LocationRef, NewTag, PendingUpdate } from '../types'
+import type { ChatMessage, LocationRef, PendingUpdate } from '../types'
+import type { Lang } from '../i18n/picklists'
 import './Chat.css'
 
 interface ChatProps {
@@ -44,16 +44,24 @@ function getSpeechRecognition(): (new () => SpeechRecognitionInstance) | null {
   return w.SpeechRecognition || w.webkitSpeechRecognition || null
 }
 
+function detectLanguageFromText(text: string): Lang {
+  const lower = text.toLowerCase()
+  if (/(?:dejé|guardé|puse|dónde|está|están|por favor|tengo|las?|los?|el\s|en\s(?:el|la|los|las))/.test(lower)) {
+    return 'es'
+  }
+  return 'en'
+}
+
 export function Chat({ householdId, onNavigateToItems }: ChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isRecording, setIsRecording] = useState(false)
+  const [pendingLanguage, setPendingLanguage] = useState<Lang | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null)
   const { items: storedItems, refetch: refetchStoredItems } = useStoredItems(householdId)
-  const { saveTag } = useHouseholdTags(householdId)
   const { language, setLanguage } = useLanguage()
 
   const suggestionPrefix = ui('chat.suggestion_prefix', language)
@@ -77,11 +85,14 @@ export function Chat({ householdId, onNavigateToItems }: ChatProps) {
     await sendMessage(text)
   }
 
-  async function sendMessage(text: string, confirm?: boolean) {
+  async function sendMessage(text: string, options?: { confirm?: boolean; confirmPlaceId?: string }) {
     setInput('')
     setError(null)
 
-    if (!confirm) {
+    if (!options?.confirm && !options?.confirmPlaceId) {
+      const detectedLang = detectLanguageFromText(text)
+      setPendingLanguage(detectedLang)
+
       const userMessage: ChatMessage = {
         id: genId(),
         role: 'user',
@@ -93,7 +104,7 @@ export function Chat({ householdId, onNavigateToItems }: ChatProps) {
     setLoading(true)
 
     try {
-      const response = await sendChatMessage(text, householdId, confirm)
+      const response = await sendChatMessage(text, householdId, options)
       setLanguage(response.language)
       refetchStoredItems()
 
@@ -106,6 +117,15 @@ export function Chat({ householdId, onNavigateToItems }: ChatProps) {
           pendingUpdate: response.pendingUpdate,
         }
         setMessages((prev) => [...prev, assistantMessage])
+      } else if (response.pendingPlaceMatch) {
+        const assistantMessage: ChatMessage = {
+          id: genId(),
+          role: 'assistant',
+          content: response.reply,
+          createdAt: new Date(),
+          pendingPlaceMatch: response.pendingPlaceMatch,
+        }
+        setMessages((prev) => [...prev, assistantMessage])
       } else {
         const assistantMessage: ChatMessage = {
           id: genId(),
@@ -113,7 +133,6 @@ export function Chat({ householdId, onNavigateToItems }: ChatProps) {
           content: response.reply,
           createdAt: new Date(),
           locationRef: response.locationRef,
-          newTags: response.newTags,
           queryResults: response.queryResults,
         }
         setMessages((prev) => [...prev, assistantMessage])
@@ -129,20 +148,29 @@ export function Chat({ householdId, onNavigateToItems }: ChatProps) {
       setMessages((prev) => [...prev, errMessage])
     } finally {
       setLoading(false)
+      setPendingLanguage(null)
     }
   }
 
   const handleConfirm = useCallback(async (pending: PendingUpdate) => {
-    // Re-send the store command with confirm flag
     const text = `${pending.item_name} in ${pending.newLocation}`
-    await sendMessage(text, true)
-    // Remove the pending message
+    await sendMessage(text, { confirm: true })
     setMessages((prev) => prev.filter((m) => !m.pendingUpdate || m.pendingUpdate.entryId !== pending.entryId))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [householdId])
+
+  const handleConfirmPlace = useCallback(async (lastUserMessage: string, placeId: string) => {
+    await sendMessage(lastUserMessage, { confirmPlaceId: placeId })
+    setMessages((prev) => prev.filter((m) => !m.pendingPlaceMatch || m.pendingPlaceMatch.suggestedPlaceId !== placeId))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [householdId])
 
   const handleCancelPending = useCallback((pending: PendingUpdate) => {
     setMessages((prev) => prev.filter((m) => !m.pendingUpdate || m.pendingUpdate.entryId !== pending.entryId))
+  }, [])
+
+  const handleCancelPlaceMatch = useCallback((placeId: string) => {
+    setMessages((prev) => prev.filter((m) => !m.pendingPlaceMatch || m.pendingPlaceMatch.suggestedPlaceId !== placeId))
   }, [])
 
   // Voice input
@@ -187,9 +215,12 @@ export function Chat({ householdId, onNavigateToItems }: ChatProps) {
         <MessageList
           messages={messages}
           onLocationClick={onNavigateToItems}
-          onSaveTag={(tag: NewTag) => saveTag({ tag_type: tag.type, tag_key: tag.key, label: tag.label })}
           onConfirmPending={handleConfirm}
           onCancelPending={handleCancelPending}
+          onConfirmPlaceMatch={handleConfirmPlace}
+          onCancelPlaceMatch={handleCancelPlaceMatch}
+          isLoading={loading}
+          loadingText={pendingLanguage === 'es' ? 'Pensando...' : 'Thinking...'}
         />
       </div>
       {error && (

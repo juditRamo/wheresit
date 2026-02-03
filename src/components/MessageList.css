@@ -111,6 +111,15 @@
   margin-bottom: 0;
 }
 
+.message--loading .message__bubble {
+  opacity: 0.85;
+}
+
+.message--loading .message__text {
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
 .message__text ul,
 .message__text ol {
   margin: 0.5rem 0;
