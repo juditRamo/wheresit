@@ -142,6 +142,23 @@ export function usePlaces(householdId: string | null) {
     [places]
   )
 
+  const getPlacePath = useCallback(
+    (placeId: string): Place[] => {
+      const byId = new Map(places.map((p) => [p.id, p]))
+      const path: Place[] = []
+      let current: string | null = placeId
+      while (current) {
+        const p = byId.get(current)
+        if (!p) break
+        path.push(p)
+        current = p.parent_place_id
+      }
+      path.reverse()
+      return path
+    },
+    [places]
+  )
+
   return {
     places,
     placeTree,
@@ -153,5 +170,6 @@ export function usePlaces(householdId: string | null) {
     deletePlace,
     getPlaceById,
     getDescendantIds,
+    getPlacePath,
   }
 }

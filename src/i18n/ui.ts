@@ -139,8 +139,18 @@ const strings: Record<string, { en: string; es: string }> = {
   'locations.empty': { en: 'No places yet. Add places via chat or here.', es: 'Aún no hay lugares. Añade lugares por chat o aquí.' },
   'locations.add_place': { en: 'Add place', es: 'Añadir lugar' },
   'locations.move_to': { en: 'Move to', es: 'Mover a' },
+  'locations.move_to_title': { en: 'Move under', es: 'Mover bajo' },
   'locations.edit': { en: 'Edit', es: 'Editar' },
   'locations.delete': { en: 'Delete', es: 'Eliminar' },
+
+  // Place drill-down picker
+  'places.move_here': { en: 'Move here', es: 'Mover aquí' },
+  'places.use_this_place': { en: 'Use this place', es: 'Usar este lugar' },
+  'places.back': { en: 'Back', es: 'Atrás' },
+  'places.root': { en: 'Root', es: 'Raíz' },
+  'places.no_place': { en: 'No place', es: 'Sin lugar' },
+  'places.change': { en: 'Change', es: 'Cambiar' },
+  'places.choose_place': { en: 'Choose from places', es: 'Elegir de lugares' },
 }
 
 /**

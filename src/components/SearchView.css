@@ -77,6 +77,16 @@
   border-color: var(--gold-primary);
 }
 
+.search-view__chip-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  align-self: center;
+  flex-shrink: 0;
+}
+
 .search-view__chip-divider {
   width: 1px;
   height: 20px;

@@ -6,6 +6,7 @@ import { CATEGORIES, t } from '../i18n/picklists'
 import type { StorageEntry } from '../types'
 import { usePlaces } from '../hooks/usePlaces'
 import { PhotoUpload } from './PhotoUpload'
+import { PlaceDrillDown } from './PlaceDrillDown'
 import './ItemEditSheet.css'
 
 interface ItemEditSheetProps {
@@ -26,41 +27,43 @@ interface ItemEditSheetProps {
   onClose: () => void
 }
 
-function flattenPlaces(tree: Array<{ id: string; label: string; type: string; children: unknown[] }>, prefix = ''): Array<{ id: string; label: string }> {
-  const out: Array<{ id: string; label: string }> = []
-  for (const p of tree) {
-    out.push({ id: p.id, label: prefix ? `${prefix} › ${p.label}` : p.label })
-    out.push(...flattenPlaces(p.children as Array<{ id: string; label: string; type: string; children: unknown[] }>, prefix ? `${prefix} › ${p.label}` : p.label))
-  }
-  return out
-}
-
 export function ItemEditSheet({ mode, entry, householdId, onSave, onDelete, onClose }: ItemEditSheetProps) {
   const { language } = useLanguage()
-  const { placeTree } = usePlaces(householdId)
+  const { placeTree, getPlacePath } = usePlaces(householdId)
   const [itemName, setItemName] = useState(entry?.item_name ?? '')
   const [placeId, setPlaceId] = useState(entry?.place_id ?? '')
   const [locationText, setLocationText] = useState(entry?.place_id ? '' : (entry?.location_description ?? ''))
   const [categoryKey, setCategoryKey] = useState(entry?.category_key ?? '')
   const [photoPath, setPhotoPath] = useState<string | null>(entry?.photo_path ?? null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showPlacePicker, setShowPlacePicker] = useState(false)
 
-  const placeOptions = flattenPlaces(placeTree as Array<{ id: string; label: string; type: string; children: unknown[] }>)
+  function getLocationDescription(): string {
+    if (placeId) {
+      const path = getPlacePath(placeId)
+      return path.length ? path.map((p) => p.label).join(' › ') : ''
+    }
+    return locationText.trim()
+  }
 
   function handleSave() {
     if (!itemName.trim()) return
-    const selectedPlace = placeOptions.find((p) => p.id === placeId)
-    const locationDescription = selectedPlace ? selectedPlace.label : locationText.trim()
     onSave({
       item_name: itemName.trim().toLowerCase(),
       room_key: null,
       spot_key: null,
       spot_detail: null,
       category_key: categoryKey || null,
-      location_description: locationDescription,
+      location_description: getLocationDescription(),
       photo_path: photoPath,
       place_id: placeId || null,
     })
+  }
+
+  function handlePlaceSelect(id: string | null) {
+    setPlaceId(id ?? '')
+    if (!id) setLocationText('')
+    setShowPlacePicker(false)
   }
 
   if (showDeleteConfirm) {
@@ -115,15 +118,51 @@ export function ItemEditSheet({ mode, entry, householdId, onSave, onDelete, onCl
 
           <div className="edit-sheet__field">
             <label className="edit-sheet__label">{ui('add.room', language)}</label>
-            {placeOptions.length > 0 && (
-              <select className="edit-sheet__select" value={placeId} onChange={(e) => { setPlaceId(e.target.value); if (!e.target.value) setLocationText(''); }}>
-                <option value="">—</option>
-                {placeOptions.map((p) => (
-                  <option key={p.id} value={p.id}>{p.label}</option>
-                ))}
-              </select>
-            )}
-            {(!placeId || placeOptions.length === 0) && (
+            {placeTree.length > 0 ? (
+              <>
+                {placeId && !showPlacePicker ? (
+                  <>
+                    <div className="edit-sheet__place-display">
+                      <span className="edit-sheet__place-path">
+                        {getPlacePath(placeId).map((p) => p.label).join(' › ')}
+                      </span>
+                      <button
+                        type="button"
+                        className="edit-sheet__place-change"
+                        onClick={() => setShowPlacePicker(true)}
+                      >
+                        {ui('places.change', language)}
+                      </button>
+                    </div>
+                  </>
+                ) : placeId === '' && !showPlacePicker ? (
+                  <>
+                    <input
+                      className="edit-sheet__input"
+                      type="text"
+                      value={locationText}
+                      onChange={(e) => setLocationText(e.target.value)}
+                      placeholder="e.g. living room › desk › top drawer"
+                    />
+                    <button
+                      type="button"
+                      className="edit-sheet__place-choose"
+                      onClick={() => setShowPlacePicker(true)}
+                    >
+                      {ui('places.choose_place', language)}
+                    </button>
+                  </>
+                ) : null}
+                {showPlacePicker && (
+                  <PlaceDrillDown
+                    placeTree={placeTree}
+                    onSelect={handlePlaceSelect}
+                    emptyOptionLabel={ui('places.no_place', language)}
+                    confirmLabel={ui('places.use_this_place', language)}
+                  />
+                )}
+              </>
+            ) : (
               <input
                 className="edit-sheet__input"
                 type="text"

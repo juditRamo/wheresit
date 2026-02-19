@@ -132,6 +132,37 @@
   border-color: var(--gold-primary);
 }
 
+.edit-sheet__place-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.edit-sheet__place-path {
+  font-size: 13px;
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+}
+
+.edit-sheet__place-change,
+.edit-sheet__place-choose {
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gold-primary);
+  background: rgba(201, 169, 98, 0.1);
+  border: 1px solid var(--gold-border, rgba(201, 169, 98, 0.4));
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.edit-sheet__place-change:hover,
+.edit-sheet__place-choose:hover {
+  background: rgba(201, 169, 98, 0.2);
+}
+
 .edit-sheet__actions {
   display: flex;
   gap: 10px;

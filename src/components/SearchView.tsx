@@ -33,8 +33,22 @@ function getItemIcon(itemName: string) {
   return Package
 }
 
-function buildLocationDisplay(entry: StorageEntry, placeLabel?: string | null): string {
-  return placeLabel ?? entry.location_description
+function getLocationDisplay(entry: StorageEntry, getPlacePath: (id: string) => { label: string }[]): string {
+  if (entry.place_id) {
+    const path = getPlacePath(entry.place_id)
+    if (path.length) return path.map((p) => p.label).join(' › ')
+  }
+  return entry.location_description ?? ''
+}
+
+function getPlaceFilterKey(entry: StorageEntry, getPlacePath: (id: string) => { label: string }[]): string | null {
+  if (entry.place_id) {
+    const path = getPlacePath(entry.place_id)
+    const root = path[0]
+    return root?.label ?? null
+  }
+  const first = entry.location_description?.split(' › ')[0]
+  return first ?? null
 }
 
 function highlightMatch(text: string, query: string): React.ReactNode {
@@ -52,27 +66,25 @@ function highlightMatch(text: string, query: string): React.ReactNode {
 
 export function SearchView({ householdId, onNavigateToItems }: SearchViewProps) {
   const { entries } = useStorageEntries(householdId)
-  const { getPlaceById } = usePlaces(householdId)
+  const { getPlaceById, getPlacePath } = usePlaces(householdId)
   const { language } = useLanguage()
   const [query, setQuery] = useState('')
   const [placeFilter, setPlaceFilter] = useState<string | null>(null)
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
 
-  const placeKeys = [...new Set(entries.map((e) => e.location_description?.split(' › ')[0]).filter(Boolean))] as string[]
+  const placeKeys = [...new Set(entries.map((e) => getPlaceFilterKey(e, getPlacePath)).filter(Boolean))] as string[]
   const categoryKeys = [...new Set(entries.map((e) => e.category_key).filter(Boolean))] as string[]
 
   let results = entries
   if (query) {
     const q = query.toLowerCase()
-    results = results.filter(
-      (e) => {
-        const loc = buildLocationDisplay(e, e.place_id ? getPlaceById(e.place_id)?.label : null)
-        return e.item_name.toLowerCase().includes(q) || loc.toLowerCase().includes(q)
-      }
-    )
+    results = results.filter((e) => {
+      const loc = getLocationDisplay(e, getPlacePath)
+      return e.item_name.toLowerCase().includes(q) || loc.toLowerCase().includes(q)
+    })
   }
   if (placeFilter) {
-    results = results.filter((e) => (e.location_description?.split(' › ')[0]) === placeFilter)
+    results = results.filter((e) => getPlaceFilterKey(e, getPlacePath) === placeFilter)
   }
   if (categoryFilter) {
     results = results.filter((e) => e.category_key === categoryFilter)
@@ -96,27 +108,37 @@ export function SearchView({ householdId, onNavigateToItems }: SearchViewProps) 
 
       {/* Filter chips */}
       <div className="search-view__chips">
-        {placeKeys.map((key) => (
-          <button
-            key={key}
-            className={`search-view__chip ${placeFilter === key ? 'search-view__chip--active' : ''}`}
-            onClick={() => setPlaceFilter(placeFilter === key ? null : key)}
-          >
-            {key}
-          </button>
-        ))}
+        {placeKeys.length > 0 && (
+          <>
+            <span className="search-view__chip-label">{ui('search.filter_room', language)}</span>
+            {placeKeys.map((key) => (
+              <button
+                key={key}
+                className={`search-view__chip ${placeFilter === key ? 'search-view__chip--active' : ''}`}
+                onClick={() => setPlaceFilter(placeFilter === key ? null : key)}
+              >
+                {key}
+              </button>
+            ))}
+          </>
+        )}
         {placeKeys.length > 0 && categoryKeys.length > 0 && (
           <div className="search-view__chip-divider" />
         )}
-        {categoryKeys.map((key) => (
-          <button
-            key={key}
-            className={`search-view__chip ${categoryFilter === key ? 'search-view__chip--active' : ''}`}
-            onClick={() => setCategoryFilter(categoryFilter === key ? null : key)}
-          >
-            {t(CATEGORIES, key, language)}
-          </button>
-        ))}
+        {categoryKeys.length > 0 && (
+          <>
+            <span className="search-view__chip-label">{ui('search.filter_category', language)}</span>
+            {categoryKeys.map((key) => (
+              <button
+                key={key}
+                className={`search-view__chip ${categoryFilter === key ? 'search-view__chip--active' : ''}`}
+                onClick={() => setCategoryFilter(categoryFilter === key ? null : key)}
+              >
+                {t(CATEGORIES, key, language)}
+              </button>
+            ))}
+          </>
+        )}
       </div>
 
       {/* Results */}
@@ -147,7 +169,7 @@ export function SearchView({ householdId, onNavigateToItems }: SearchViewProps) 
               </div>
               <div className="search-view__result-info">
                 <span className="search-view__result-name">{highlightMatch(entry.item_name, query)}</span>
-                <span className="search-view__result-loc">{buildLocationDisplay(entry, entry.place_id ? getPlaceById(entry.place_id)?.label : null)}</span>
+                <span className="search-view__result-loc">{getLocationDisplay(entry, getPlacePath)}</span>
               </div>
               {entry.category_key && (
                 <span className="search-view__result-badge">

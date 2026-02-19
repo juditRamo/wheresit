@@ -1,0 +1,53 @@
+.place-drill-down {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.place-drill-down__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.place-drill-down__opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  background: rgba(201, 169, 98, 0.1);
+  border: 1px solid var(--gold-border, rgba(201, 169, 98, 0.4));
+  border-radius: 6px;
+  color: var(--gold-primary, #c9a962);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.place-drill-down__opt:hover {
+  background: rgba(201, 169, 98, 0.2);
+}
+
+.place-drill-down__opt--back {
+  color: var(--text-secondary);
+  border-color: var(--border-dark);
+  background: var(--bg-card);
+}
+
+.place-drill-down__opt--back:hover {
+  background: var(--border-dark);
+}
+
+.place-drill-down__opt--root {
+  font-weight: 600;
+}
+
+.place-drill-down__opt--confirm {
+  font-weight: 600;
+}
+
+/* In edit sheet context, match existing field styling */
+.edit-sheet .place-drill-down__opt {
+  font-size: 13px;
+  padding: 8px 12px;
+}

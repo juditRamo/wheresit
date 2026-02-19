@@ -1,11 +1,27 @@
 import { useState } from 'react'
-import { ChevronRight, Plus, Pencil, Trash2, GripVertical } from 'lucide-react'
+import { ChevronRight, Plus, Pencil, Trash2, GripVertical, ToolCase, Inbox, DoorOpen, DoorClosed, LibraryBig, Folder, MapPin } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { usePlaces, type PlaceWithChildren } from '../hooks/usePlaces'
 import { useStorageEntries } from '../hooks/useStorageEntries'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
 import type { LocationRef } from '../types'
+import { PlaceDrillDown } from './PlaceDrillDown'
 import './LocationsView.css'
+
+const PLACE_TYPE_ICONS: Record<string, LucideIcon> = {
+  room: DoorOpen,
+  furniture: DoorClosed,
+  shelf: LibraryBig,
+  drawer: Inbox,
+  box: ToolCase,
+  folder: Folder,
+}
+
+function getPlaceTypeIcon(type: string): LucideIcon {
+  const icon = PLACE_TYPE_ICONS[type.toLowerCase()]
+  return icon ?? MapPin
+}
 
 interface LocationsViewProps {
   householdId: string
@@ -16,8 +32,11 @@ function PlaceNode({
   place,
   depth,
   allPlaces,
+  placeTree,
   itemCount,
   placeIdToPlace,
+  getPlacePath,
+  getDescendantIds,
   onEdit,
   onDelete,
   onMove,
@@ -26,16 +45,22 @@ function PlaceNode({
   place: PlaceWithChildren
   depth: number
   allPlaces: PlaceWithChildren[]
+  placeTree: PlaceWithChildren[]
   itemCount: (placeId: string) => number
   placeIdToPlace: Map<string, PlaceWithChildren>
+  getPlacePath: (placeId: string) => Array<{ label: string }>
+  getDescendantIds: (placeId: string) => string[]
   onEdit: (p: PlaceWithChildren) => void
   onDelete: (p: PlaceWithChildren) => void
   onMove: (p: PlaceWithChildren, newParentId: string | null) => void
   onNavigateToItems?: (filter: LocationRef) => void
 }) {
+  const { language } = useLanguage()
   const [collapsed, setCollapsed] = useState(false)
   const [showMove, setShowMove] = useState(false)
   const count = itemCount(place.id) + place.children.reduce((s, c) => s + itemCount(c.id), 0)
+  const excludeIds = new Set([place.id, ...getDescendantIds(place.id)])
+  const TypeIcon = getPlaceTypeIcon(place.type)
 
   return (
     <div className="locations-view__node" style={{ paddingLeft: depth * 16 }}>
@@ -50,53 +75,60 @@ function PlaceNode({
             className={`locations-view__chevron ${!collapsed ? 'locations-view__chevron--open' : ''}`}
           />
         </button>
-        <GripVertical size={12} className="locations-view__grip" />
         <div className="locations-view__info">
-          {onNavigateToItems ? (
-            <button
-              type="button"
-              className="locations-view__label locations-view__label--link"
-              onClick={() => onNavigateToItems({ place_id: place.id, place_label: place.label })}
-            >
-              {place.label}
-            </button>
-          ) : (
-            <span className="locations-view__label">{place.label}</span>
-          )}
-          <span className="locations-view__meta">
+          <span className="locations-view__type-icon">
+            <TypeIcon size={16} color="var(--gold-primary)" />
+          </span>
+          <div className="locations-view__info-text">
+            {onNavigateToItems ? (
+              <button
+                type="button"
+                className="locations-view__label locations-view__label--link"
+                onClick={() => onNavigateToItems({ place_id: place.id, place_label: place.label })}
+              >
+                {place.label}
+              </button>
+            ) : (
+              <span className="locations-view__label">{place.label}</span>
+            )}
+            <span className="locations-view__meta">
             {place.type}
             {Object.keys(place.attributes ?? {}).length > 0 && (
               <> · {Object.entries(place.attributes ?? {}).map(([k, v]) => `${k}: ${v}`).join(', ')}</>
             )}
             {count > 0 && <> · {count} items</>}
-          </span>
+            </span>
+          </div>
         </div>
         <div className="locations-view__actions">
           <button
             className="locations-view__action"
             onClick={() => setShowMove(!showMove)}
-            title={ui('locations.move_to', useLanguage().language)}
+            title={ui('locations.move_to', language)}
           >
             <GripVertical size={14} />
           </button>
-          <button className="locations-view__action" onClick={() => onEdit(place)} title={ui('locations.edit', useLanguage().language)}>
+          <button className="locations-view__action" onClick={() => onEdit(place)} title={ui('locations.edit', language)}>
             <Pencil size={12} />
           </button>
-          <button className="locations-view__action locations-view__action--danger" onClick={() => onDelete(place)} title={ui('locations.delete', useLanguage().language)}>
+          <button className="locations-view__action locations-view__action--danger" onClick={() => onDelete(place)} title={ui('locations.delete', language)}>
             <Trash2 size={12} />
           </button>
         </div>
       </div>
       {showMove && (
         <div className="locations-view__move-panel">
-          {allPlaces.filter((p) => p.id !== place.id && !isDescendant(p, place.id, placeIdToPlace)).map((p) => (
-            <button key={p.id} className="locations-view__move-opt" onClick={() => { onMove(place, p.id); setShowMove(false) }}>
-              → {p.label}
-            </button>
-          ))}
-          <button className="locations-view__move-opt" onClick={() => { onMove(place, null); setShowMove(false) }}>
-            → Root
-          </button>
+          <span className="locations-view__move-panel-label">{ui('locations.move_to_title', language)}</span>
+          <PlaceDrillDown
+            placeTree={placeTree}
+            onSelect={(newParentId) => {
+              onMove(place, newParentId)
+              setShowMove(false)
+            }}
+            excludeIds={excludeIds}
+            showRootOption
+            confirmLabel={ui('places.move_here', language)}
+          />
         </div>
       )}
       {!collapsed && place.children.length > 0 && (
@@ -107,8 +139,11 @@ function PlaceNode({
               place={child}
               depth={depth + 1}
               allPlaces={allPlaces}
+              placeTree={placeTree}
               itemCount={itemCount}
               placeIdToPlace={placeIdToPlace}
+              getPlacePath={getPlacePath}
+              getDescendantIds={getDescendantIds}
               onEdit={onEdit}
               onDelete={onDelete}
               onMove={onMove}
@@ -119,15 +154,6 @@ function PlaceNode({
       )}
     </div>
   )
-}
-
-function isDescendant(place: PlaceWithChildren, ancestorId: string, byId: Map<string, PlaceWithChildren>): boolean {
-  let pid: string | null = place.parent_place_id
-  while (pid) {
-    if (pid === ancestorId) return true
-    pid = byId.get(pid)?.parent_place_id ?? null
-  }
-  return false
 }
 
 function flattenTree(tree: PlaceWithChildren[]): PlaceWithChildren[] {
@@ -143,7 +169,7 @@ function flattenTree(tree: PlaceWithChildren[]): PlaceWithChildren[] {
 }
 
 export function LocationsView({ householdId, onNavigateToItems }: LocationsViewProps) {
-  const { placeTree, loading, createPlace, updatePlace, movePlace, deletePlace, refetch } = usePlaces(householdId)
+  const { placeTree, loading, createPlace, updatePlace, movePlace, deletePlace, refetch, getPlacePath, getDescendantIds } = usePlaces(householdId)
   const { entries } = useStorageEntries(householdId)
   const { language } = useLanguage()
   const [adding, setAdding] = useState(false)
@@ -248,7 +274,7 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
         </div>
       )}
       <div className="locations-view__body">
-        {loading ? (
+        {loading && placeTree.length === 0 ? (
           <p className="locations-view__empty">Loading…</p>
         ) : placeTree.length === 0 ? (
           <p className="locations-view__empty">{ui('locations.empty', language)}</p>
@@ -260,8 +286,11 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
                 place={place}
                 depth={0}
                 allPlaces={allPlacesFlat}
+                placeTree={placeTree}
                 itemCount={itemCountByPlace}
                 placeIdToPlace={placeIdToPlace}
+                getPlacePath={getPlacePath}
+                getDescendantIds={getDescendantIds}
                 onEdit={(p) => { setEditing(p); setEditLabel(p.label); setEditAttributes(Object.entries(p.attributes ?? {}).map(([k, v]) => `${k}: ${v}`).join(', ')) }}
                 onDelete={handleDelete}
                 onMove={handleMove}

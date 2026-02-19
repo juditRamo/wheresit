@@ -78,8 +78,15 @@ function getRoomIcon(roomKey: string) {
   return Home
 }
 
-function buildLocationDisplay(entry: StorageEntry, placeLabel?: string | null): string {
-  return placeLabel ?? entry.location_description
+function getLocationDisplay(
+  entry: StorageEntry,
+  getPlacePath: (id: string) => Array<{ label: string }>
+): string {
+  if (entry.place_id) {
+    const path = getPlacePath(entry.place_id)
+    if (path.length) return path.map((p) => p.label).join(' › ')
+  }
+  return entry.location_description ?? ''
 }
 
 function getRootPlaceId(placeId: string | null, places: Array<{ id: string; parent_place_id: string | null }>): string | null {
@@ -129,7 +136,7 @@ function groupByCategory(entries: StorageEntry[], lang: 'en' | 'es'): Record<str
 
 export function InventoryView({ householdId, filter, onClearFilter }: InventoryViewProps) {
   const { entries, loading, refetch, updateEntry, deleteEntry, createEntry, stats } = useStorageEntries(householdId)
-  const { getDescendantIds, getPlaceById, places } = usePlaces(householdId)
+  const { getDescendantIds, getPlaceById, getPlacePath, places } = usePlaces(householdId)
   const { language } = useLanguage()
   const [activeTab, setActiveTab] = useState<SortTab>('room')
   const [searchQuery, setSearchQuery] = useState('')
@@ -157,7 +164,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
     filtered = filtered.filter(
       (e) =>
         e.item_name.toLowerCase().includes(q) ||
-        buildLocationDisplay(e).toLowerCase().includes(q)
+        getLocationDisplay(e, getPlacePath).toLowerCase().includes(q)
     )
   }
 
@@ -260,7 +267,10 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
           <span className="inventory__filter-text">
             {ui('inventory.filtered', language, {
               room: filter.place_id
-                ? (filter.place_label ?? getPlaceById(filter.place_id)?.label ?? filter.place_id)
+                ? getPlacePath(filter.place_id)
+                    .map((p) => p.label)
+                    .join(' › ') ||
+                  (filter.place_label ?? getPlaceById(filter.place_id)?.label ?? filter.place_id)
                 : (filter.room_key ?? ''),
             })}
           </span>
@@ -352,7 +362,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
                       </div>
                       <div className="inventory__item-info">
                         <span className="inventory__item-name">{entry.item_name}</span>
-                        <span className="inventory__item-loc">{buildLocationDisplay(entry, entry.place_id ? getPlaceById(entry.place_id)?.label : null)}</span>
+                        <span className="inventory__item-loc">{getLocationDisplay(entry, getPlacePath)}</span>
                       </div>
                       {entry.category_key && (
                         <span className="inventory__item-badge">
