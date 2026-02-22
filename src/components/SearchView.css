@@ -121,7 +121,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #F0EAE0;
+  background: var(--bg-highlight);
   border: 1px solid var(--border-dark);
   border-radius: 8px;
   flex-shrink: 0;

@@ -10,7 +10,7 @@
 }
 
 .household-select__subtitle {
-  color: var(--muted, #888);
+  color: var(--muted);
   font-size: 0.9rem;
   margin: 0 0 1.5rem;
 }
@@ -35,8 +35,8 @@
 .household-select__form input {
   padding: 0.6rem 0.75rem;
   border-radius: 8px;
-  border: 1px solid var(--border, #c4c7cc);
-  background: var(--input-bg, #d5dae0);
+  border: 1px solid var(--border);
+  background: var(--input-bg);
   color: inherit;
   font-size: 1rem;
 }
@@ -57,7 +57,7 @@
 }
 
 .household-select__message--error {
-  color: #e57373;
+  color: var(--danger);
 }
 
 .household-select__message--success {
@@ -74,14 +74,14 @@
 
 .household-select__label {
   font-size: 0.9rem;
-  color: var(--muted, #888);
+  color: var(--muted);
 }
 
 .household-select__select {
   padding: 0.4rem 0.6rem;
   border-radius: 6px;
-  border: 1px solid var(--border, #c4c7cc);
-  background: var(--input-bg, #d5dae0);
+  border: 1px solid var(--border);
+  background: var(--input-bg);
   color: inherit;
   font-size: 0.95rem;
 }

@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { useAuth } from './hooks/useAuth'
 import { useHousehold } from './hooks/useHousehold'
 import { LanguageProvider } from './i18n/LanguageContext'
+import { ThemeProvider } from './theme/ThemeContext'
 import { Auth } from './components/Auth'
 import { HouseholdSelect } from './components/HouseholdSelect'
 import { Header } from './components/Header'
@@ -124,9 +125,11 @@ function AppInner() {
 
 function App() {
   return (
-    <LanguageProvider>
-      <AppInner />
-    </LanguageProvider>
+    <ThemeProvider>
+      <LanguageProvider>
+        <AppInner />
+      </LanguageProvider>
+    </ThemeProvider>
   )
 }
 

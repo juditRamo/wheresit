@@ -15,8 +15,8 @@
 .chat__error {
   padding: 8px 16px;
   font-size: 12px;
-  color: #e57373;
-  background: rgba(229, 115, 115, 0.1);
+  color: var(--danger);
+  background: var(--danger-dim);
 }
 
 /* Input Bar */

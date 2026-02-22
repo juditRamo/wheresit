@@ -193,13 +193,13 @@
 }
 
 .edit-sheet__btn--danger {
-  background: rgba(229, 115, 115, 0.1);
-  color: #e57373;
-  border: 1px solid rgba(229, 115, 115, 0.25);
+  background: var(--danger-dim);
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
 }
 
 .edit-sheet__btn--danger:hover {
-  background: rgba(229, 115, 115, 0.2);
+  background: var(--danger-hover);
 }
 
 .edit-sheet__btn--secondary {

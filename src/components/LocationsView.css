@@ -200,7 +200,7 @@
 
 .locations-view__action--danger:hover {
   background: rgba(180, 60, 60, 0.2);
-  color: var(--danger, #c44);
+  color: var(--danger);
 }
 
 .locations-view__move-panel {

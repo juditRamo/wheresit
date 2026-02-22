@@ -180,7 +180,33 @@
 .settings-panel__lang-btn--active {
   color: var(--gold-primary);
   border-color: var(--gold-primary);
-  background: rgba(201, 169, 98, 0.1);
+  background: var(--gold-dim);
+}
+
+/* Theme toggle */
+.settings-panel__theme-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.settings-panel__theme-btn {
+  flex: 1;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border-dark);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+}
+
+.settings-panel__theme-btn--active {
+  color: var(--gold-primary);
+  border-color: var(--gold-primary);
+  background: var(--gold-dim);
 }
 
 /* Household select */
@@ -227,15 +253,15 @@
   gap: 8px;
   font-size: 13px;
   font-weight: 600;
-  color: #e57373;
-  background: rgba(229, 115, 115, 0.08);
-  border: 1px solid rgba(229, 115, 115, 0.2);
+  color: var(--danger);
+  background: var(--danger-dim);
+  border: 1px solid var(--danger-border);
   border-radius: 10px;
   transition: background 0.15s;
 }
 
 .settings-panel__signout:hover {
-  background: rgba(229, 115, 115, 0.15);
+  background: var(--danger-hover);
 }
 
 @media (min-width: 1024px) {

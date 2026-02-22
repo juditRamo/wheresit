@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { X, Copy, Check, LogOut, MapPin } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useLanguage } from '../i18n/LanguageContext'
+import { useTheme } from '../theme/ThemeContext'
 import { ui } from '../i18n/ui'
 import type { Household } from '../types'
 import './SettingsPanel.css'
@@ -23,6 +24,7 @@ interface MemberInfo {
 
 export function SettingsPanel({ household, households, selectedId, onSelectHousehold, onClose, onNavigateToLocations }: SettingsPanelProps) {
   const { language, setLanguage } = useLanguage()
+  const { theme, setTheme } = useTheme()
   const [copied, setCopied] = useState(false)
   const [members, setMembers] = useState<MemberInfo[]>([])
 
@@ -116,6 +118,31 @@ export function SettingsPanel({ household, households, selectedId, onSelectHouse
             </select>
           </div>
         )}
+
+        {/* Theme */}
+        <div className="settings-panel__section">
+          <h3 className="settings-panel__section-title">{ui('settings.theme', language)}</h3>
+          <div className="settings-panel__theme-toggle">
+            <button
+              className={`settings-panel__theme-btn ${theme === 'light' ? 'settings-panel__theme-btn--active' : ''}`}
+              onClick={() => setTheme('light')}
+            >
+              {ui('settings.theme_light', language)}
+            </button>
+            <button
+              className={`settings-panel__theme-btn ${theme === 'dark' ? 'settings-panel__theme-btn--active' : ''}`}
+              onClick={() => setTheme('dark')}
+            >
+              {ui('settings.theme_dark', language)}
+            </button>
+            <button
+              className={`settings-panel__theme-btn ${theme === 'system' ? 'settings-panel__theme-btn--active' : ''}`}
+              onClick={() => setTheme('system')}
+            >
+              {ui('settings.theme_system', language)}
+            </button>
+          </div>
+        </div>
 
         {/* Language */}
         <div className="settings-panel__section">
