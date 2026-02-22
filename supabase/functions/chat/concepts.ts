@@ -8,7 +8,6 @@ import { canonicalizeConceptLabel, embeddingToVectorLiteral } from './utils.ts'
 export type SupabaseClientType = ReturnType<typeof createClient>
 
 const CONCEPT_SIMILARITY_THRESHOLD = 0.78
-
 const CONCEPT_QUERY_THRESHOLD = 0.65
 
 /** Call Gemini text-embedding-004 API to get vector for semantic similarity. Used for concept matching. */
