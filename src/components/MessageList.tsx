@@ -35,7 +35,7 @@ function MultiResultCard({ results, onLocationClick }: { results: QueryResult[];
             if (r.place_id) {
               onLocationClick({ place_id: r.place_id })
             } else {
-              onLocationClick({ room_key: r.location_description })
+              onLocationClick({ location_description: r.location_description })
             }
           }}
         >
@@ -159,10 +159,10 @@ export function MessageList({
                   onClick={() => onLocationClick(
                     m.locationRef!.place_id
                       ? { place_id: m.locationRef!.place_id, place_label: m.locationRef!.place_label }
-                      : { room_key: m.locationRef!.place_label ?? m.locationRef!.room_key ?? '' }
+                      : { location_description: m.locationRef!.place_label ?? m.locationRef!.location_description ?? '' }
                   )}
                 >
-                  {m.locationRef.place_label ?? m.locationRef.place_id ?? m.locationRef.room_key ?? ''}
+                  {m.locationRef.place_label ?? m.locationRef.place_id ?? m.locationRef.location_description ?? ''}
                 </button>
                 <span className="location-card__hint">
                   {ui('location.tap', language)} <ChevronRight size={10} />

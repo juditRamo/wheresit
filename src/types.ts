@@ -31,9 +31,6 @@ export interface StorageEntry {
   household_id: string
   item_name: string
   location_description: string
-  room_key: string | null
-  spot_key: string | null
-  spot_detail: string | null
   category_key: string | null
   place_id: string | null
   created_at: string
@@ -56,9 +53,6 @@ export interface LocationHistory {
 
 export interface QueryResult {
   item_name: string
-  room_key: string | null
-  spot_key: string | null
-  spot_detail: string | null
   location_description: string
   place_id?: string | null
 }
@@ -68,9 +62,6 @@ export interface PendingUpdate {
   oldLocation: string
   newLocation: string
   item_name: string
-  room_key: string
-  spot_key?: string
-  spot_detail?: string
   category_key?: string
 }
 
@@ -84,10 +75,9 @@ export interface PendingPlaceMatch {
 export type ChatMessageRole = 'user' | 'assistant'
 
 export interface LocationRef {
-  room_key?: string
-  spot_key?: string
   place_id?: string
   place_label?: string
+  location_description?: string
 }
 
 export interface ChatMessage {

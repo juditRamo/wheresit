@@ -156,7 +156,7 @@ export function SearchView({ householdId, onNavigateToItems }: SearchViewProps) 
                 if (entry.place_id) {
                   onNavigateToItems({ place_id: entry.place_id, place_label: getPlaceById(entry.place_id)?.label })
                 } else {
-                  onNavigateToItems({ room_key: entry.location_description })
+                  onNavigateToItems({ location_description: entry.location_description })
                 }
               }}
             >

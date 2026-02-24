@@ -15,9 +15,6 @@ interface ItemEditSheetProps {
   householdId: string
   onSave: (data: {
     item_name: string
-    room_key: string | null
-    spot_key: string | null
-    spot_detail: string | null
     category_key: string | null
     location_description: string
     photo_path?: string | null
@@ -50,9 +47,6 @@ export function ItemEditSheet({ mode, entry, householdId, onSave, onDelete, onCl
     if (!itemName.trim()) return
     onSave({
       item_name: itemName.trim().toLowerCase(),
-      room_key: null,
-      spot_key: null,
-      spot_detail: null,
       category_key: categoryKey || null,
       location_description: getLocationDescription(),
       photo_path: photoPath,

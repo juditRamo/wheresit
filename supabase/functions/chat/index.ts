@@ -54,9 +54,6 @@ type Lang = 'en' | 'es'
 /** Single item result returned to client for display in search/location query UI. */
 interface QueryResult {
   item_name: string
-  room_key: string | null
-  spot_key: string | null
-  spot_detail: string | null
   location_description: string
   place_id?: string | null
 }
@@ -67,9 +64,6 @@ interface PendingUpdate {
   oldLocation: string
   newLocation: string
   item_name: string
-  room_key: string
-  spot_key?: string
-  spot_detail?: string
   category_key?: string
 }
 
@@ -163,7 +157,7 @@ Deno.serve(async (req) => {
     // --- Route by intent ---
     const lang = intentResult.language
     let reply: string
-    let locationRef: { room_key?: string; spot_key?: string; place_id?: string; place_label?: string } | undefined
+    let locationRef: { place_id?: string; place_label?: string; location_description?: string } | undefined
     let queryResults: QueryResult[] | undefined
     let pendingUpdate: PendingUpdate | undefined
     let pendingPlaceMatch: { suggestedPlaceId: string; suggestedPlaceLabel: string; locationPath: LocationPathSegment[]; confidence: 'low' | 'medium' } | undefined
@@ -203,15 +197,12 @@ Deno.serve(async (req) => {
         if (placeIds.size > 0) {
           const { data: rows } = await supabase
             .from('storage_entries')
-            .select('id, item_name, location_description, room_key, spot_key, spot_detail, place_id')
+            .select('id, item_name, location_description, place_id')
             .eq('household_id', householdId)
             .in('place_id', [...placeIds])
           if (rows && rows.length > 0) {
-            queryResults = rows.map((r: { item_name: string; room_key: string | null; spot_key: string | null; spot_detail: string | null; location_description: string; place_id: string | null }) => ({
+            queryResults = rows.map((r: { item_name: string; location_description: string; place_id: string | null }) => ({
               item_name: r.item_name,
-              room_key: r.room_key,
-              spot_key: r.spot_key,
-              spot_detail: r.spot_detail,
               location_description: r.location_description,
               place_id: r.place_id,
             }))
@@ -228,15 +219,12 @@ Deno.serve(async (req) => {
         } else {
           const { data: rows } = await supabase
             .from('storage_entries')
-            .select('id, item_name, location_description, room_key, spot_key, spot_detail, place_id')
+            .select('id, item_name, location_description, place_id')
             .eq('household_id', householdId)
             .ilike('location_description', `%${locDesc.split(/\s+/)[0]}%`)
           if (rows && rows.length > 0) {
-            queryResults = rows.map((r: { item_name: string; room_key: string | null; spot_key: string | null; spot_detail: string | null; location_description: string; place_id: string | null }) => ({
+            queryResults = rows.map((r: { item_name: string; location_description: string; place_id: string | null }) => ({
               item_name: r.item_name,
-              room_key: r.room_key,
-              spot_key: r.spot_key,
-              spot_detail: r.spot_detail,
               location_description: r.location_description,
               place_id: r.place_id,
             }))
@@ -318,9 +306,6 @@ Deno.serve(async (req) => {
 
       const writeData: Record<string, unknown> = {
         location_description: locationDesc,
-        room_key: null,
-        spot_key: null,
-        spot_detail: null,
         category_key: intentResult.category ?? null,
         updated_at: new Date().toISOString(),
         created_by: user.id,
@@ -348,7 +333,6 @@ Deno.serve(async (req) => {
             oldLocation,
             newLocation: locationDesc,
             item_name: intentResult.item_name,
-            room_key: locationDesc,
           }
 
           return new Response(JSON.stringify({ reply, language: lang, pendingUpdate }), {
@@ -500,9 +484,6 @@ Deno.serve(async (req) => {
       if (rows.length > 0) {
         queryResults = rows.map((row) => ({
           item_name: row.item_name,
-          room_key: null,
-          spot_key: null,
-          spot_detail: null,
           location_description: row.location_description,
           place_id: row.place_id,
         }))
@@ -538,7 +519,7 @@ Deno.serve(async (req) => {
             ? `${prefix}${row.item_name} está en ${loc}.${previousNote}`
             : `${prefix}${row.item_name} is in ${loc}.${previousNote}`
 
-          locationRef = row.place_id ? { place_id: row.place_id, place_label: loc } : undefined
+          locationRef = row.place_id ? { place_id: row.place_id, place_label: loc } : { location_description: loc, place_label: loc }
         } else {
           const lines = rows.map((row) => {
             const loc = row.location_description
@@ -555,7 +536,7 @@ Deno.serve(async (req) => {
           reply = `${contextLabel}\n${lines.join('\n')}`
 
           const first = rows[0]
-          locationRef = first.place_id ? { place_id: first.place_id, place_label: first.location_description } : undefined
+          locationRef = first.place_id ? { place_id: first.place_id, place_label: first.location_description } : { location_description: first.location_description, place_label: first.location_description }
         }
       } else {
         reply = conceptContext?.matchedLabel
