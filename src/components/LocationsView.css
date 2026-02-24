@@ -46,6 +46,12 @@
   border-bottom: 1px solid var(--border-dark);
 }
 
+.locations-view__form--inline {
+  padding: 8px 12px 12px 44px;
+  border-bottom: none;
+  border-top: 1px solid var(--border-dark);
+}
+
 .locations-view__select,
 .locations-view__input {
   padding: 8px 12px;

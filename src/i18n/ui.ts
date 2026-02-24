@@ -142,9 +142,11 @@ const strings: Record<string, { en: string; es: string }> = {
   'locations.tab_title': { en: 'Places', es: 'Lugares' },
   'locations.empty': { en: 'No places yet. Add places via chat or here.', es: 'Aún no hay lugares. Añade lugares por chat o aquí.' },
   'locations.add_place': { en: 'Add place', es: 'Añadir lugar' },
+  'locations.add_child': { en: 'Add place inside', es: 'Añadir lugar dentro' },
   'locations.move_to': { en: 'Move to', es: 'Mover a' },
   'locations.move_to_title': { en: 'Move under', es: 'Mover bajo' },
   'locations.edit': { en: 'Edit', es: 'Editar' },
+  'locations.edit_place_title': { en: 'Edit place', es: 'Editar lugar' },
   'locations.delete': { en: 'Delete', es: 'Eliminar' },
 
   // Place drill-down picker

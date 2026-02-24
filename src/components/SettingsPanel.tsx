@@ -13,7 +13,7 @@ interface SettingsPanelProps {
   selectedId: string
   onSelectHousehold: (id: string) => void
   onClose: () => void
-  onNavigateToLocations?: () => void
+  onNavigateToLocations: () => void
 }
 
 interface MemberInfo {

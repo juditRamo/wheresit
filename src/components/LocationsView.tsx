@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronRight, Plus, Pencil, Trash2, GripVertical, ToolCase, Inbox, DoorOpen, DoorClosed, LibraryBig, Folder, MapPin } from 'lucide-react'
+import { ChevronRight, Plus, Pencil, Trash2, MapPinPen, ToolCase, Inbox, DoorOpen, DoorClosed, LibraryBig, Folder, MapPin } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { usePlaces, type PlaceWithChildren } from '../hooks/usePlaces'
 import { useStorageEntries } from '../hooks/useStorageEntries'
@@ -7,6 +7,7 @@ import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
 import type { LocationRef } from '../types'
 import { PlaceDrillDown } from './PlaceDrillDown'
+import { PlaceEditSheet } from './PlaceEditSheet'
 import './LocationsView.css'
 
 const PLACE_TYPE_ICONS: Record<string, LucideIcon> = {
@@ -41,6 +42,14 @@ function PlaceNode({
   onDelete,
   onMove,
   onNavigateToItems,
+  addingUnderId,
+  newType,
+  newLabel,
+  setNewType,
+  setNewLabel,
+  onAddChild,
+  onCancelAddChild,
+  onAddChildSubmit,
 }: {
   place: PlaceWithChildren
   depth: number
@@ -54,6 +63,14 @@ function PlaceNode({
   onDelete: (p: PlaceWithChildren) => void
   onMove: (p: PlaceWithChildren, newParentId: string | null) => void
   onNavigateToItems?: (filter: LocationRef) => void
+  addingUnderId: string | null
+  newType: string
+  newLabel: string
+  setNewType: (t: string) => void
+  setNewLabel: (l: string) => void
+  onAddChild: (p: PlaceWithChildren) => void
+  onCancelAddChild: () => void
+  onAddChildSubmit: (parentId: string) => void
 }) {
   const { language } = useLanguage()
   const [collapsed, setCollapsed] = useState(false)
@@ -61,6 +78,7 @@ function PlaceNode({
   const count = itemCount(place.id) + place.children.reduce((s, c) => s + itemCount(c.id), 0)
   const excludeIds = new Set([place.id, ...getDescendantIds(place.id)])
   const TypeIcon = getPlaceTypeIcon(place.type)
+  const showChildForm = addingUnderId === place.id
 
   return (
     <div className="locations-view__node" style={{ paddingLeft: depth * 16 }}>
@@ -103,10 +121,17 @@ function PlaceNode({
         <div className="locations-view__actions">
           <button
             className="locations-view__action"
+            onClick={() => onAddChild(place)}
+            title={ui('locations.add_child', language)}
+          >
+            <Plus size={12} />
+          </button>
+          <button
+            className="locations-view__action"
             onClick={() => setShowMove(!showMove)}
             title={ui('locations.move_to', language)}
           >
-            <GripVertical size={14} />
+            <MapPinPen size={14} />
           </button>
           <button className="locations-view__action" onClick={() => onEdit(place)} title={ui('locations.edit', language)}>
             <Pencil size={12} />
@@ -116,6 +141,31 @@ function PlaceNode({
           </button>
         </div>
       </div>
+      {showChildForm && (
+        <div className="locations-view__form locations-view__form--inline">
+          <select value={newType} onChange={(e) => setNewType(e.target.value)} className="locations-view__select">
+            <option value="room">Room</option>
+            <option value="furniture">Furniture</option>
+            <option value="shelf">Shelf</option>
+            <option value="drawer">Drawer</option>
+            <option value="box">Box</option>
+            <option value="folder">Folder</option>
+          </select>
+          <input
+            className="locations-view__input"
+            placeholder="Label"
+            value={newLabel}
+            onChange={(e) => setNewLabel(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && onAddChildSubmit(place.id)}
+          />
+          <button className="locations-view__submit" onClick={() => onAddChildSubmit(place.id)}>
+            Add
+          </button>
+          <button className="locations-view__cancel" onClick={onCancelAddChild}>
+            Cancel
+          </button>
+        </div>
+      )}
       {showMove && (
         <div className="locations-view__move-panel">
           <span className="locations-view__move-panel-label">{ui('locations.move_to_title', language)}</span>
@@ -148,6 +198,14 @@ function PlaceNode({
               onDelete={onDelete}
               onMove={onMove}
               onNavigateToItems={onNavigateToItems}
+              addingUnderId={addingUnderId}
+              newType={newType}
+              newLabel={newLabel}
+              setNewType={setNewType}
+              setNewLabel={setNewLabel}
+              onAddChild={onAddChild}
+              onCancelAddChild={onCancelAddChild}
+              onAddChildSubmit={onAddChildSubmit}
             />
           ))}
         </div>
@@ -173,11 +231,10 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
   const { entries } = useStorageEntries(householdId)
   const { language } = useLanguage()
   const [adding, setAdding] = useState(false)
+  const [addingUnderId, setAddingUnderId] = useState<string | null>(null)
   const [newType, setNewType] = useState('room')
   const [newLabel, setNewLabel] = useState('')
   const [editing, setEditing] = useState<PlaceWithChildren | null>(null)
-  const [editLabel, setEditLabel] = useState('')
-  const [editAttributes, setEditAttributes] = useState('')
 
   const itemCountByPlace = (placeId: string) => entries.filter((e) => e.place_id === placeId).length
   const allPlacesFlat = flattenTree(placeTree)
@@ -194,14 +251,30 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
     }
   }
 
-  async function handleSaveEdit() {
-    if (!editing) return
-    const attrs: Record<string, string> = {}
-    for (const part of editAttributes.split(',').map((s) => s.trim()).filter(Boolean)) {
-      const [k, v] = part.split(':').map((s) => s.trim())
-      if (k && v) attrs[k] = v
+  function startAddChild(place: PlaceWithChildren) {
+    setAddingUnderId(place.id)
+    setNewType('room')
+    setNewLabel('')
+  }
+
+  function cancelAddChild() {
+    setAddingUnderId(null)
+  }
+
+  async function handleAddChild(parentId: string) {
+    const label = newLabel.trim()
+    if (!label) return
+    const { error } = await createPlace({ type: newType, label, parent_place_id: parentId })
+    if (!error) {
+      setNewLabel('')
+      setAddingUnderId(null)
+      refetch()
     }
-    await updatePlace(editing.id, { label: editLabel.trim(), attributes: attrs })
+  }
+
+  async function handleSaveEdit(data: { label: string; type: string; attributes: Record<string, string> }) {
+    if (!editing) return
+    await updatePlace(editing.id, { label: data.label, type: data.type, attributes: data.attributes })
     setEditing(null)
     refetch()
   }
@@ -226,7 +299,7 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
           {ui('locations.add_place', language)}
         </button>
       </div>
-      {adding && (
+      {adding && !addingUnderId && (
         <div className="locations-view__form">
           <select value={newType} onChange={(e) => setNewType(e.target.value)} className="locations-view__select">
             <option value="room">Room</option>
@@ -252,26 +325,11 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
         </div>
       )}
       {editing && (
-        <div className="locations-view__form">
-          <input
-            className="locations-view__input"
-            value={editLabel}
-            onChange={(e) => setEditLabel(e.target.value)}
-            placeholder="Label"
-          />
-          <input
-            className="locations-view__input"
-            value={editAttributes}
-            onChange={(e) => setEditAttributes(e.target.value)}
-            placeholder="color: beige, position: behind sofa"
-          />
-          <button className="locations-view__submit" onClick={handleSaveEdit}>
-            Save
-          </button>
-          <button className="locations-view__cancel" onClick={() => setEditing(null)}>
-            Cancel
-          </button>
-        </div>
+        <PlaceEditSheet
+          place={editing}
+          onSave={handleSaveEdit}
+          onClose={() => setEditing(null)}
+        />
       )}
       <div className="locations-view__body">
         {loading && placeTree.length === 0 ? (
@@ -291,10 +349,18 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
                 placeIdToPlace={placeIdToPlace}
                 getPlacePath={getPlacePath}
                 getDescendantIds={getDescendantIds}
-                onEdit={(p) => { setEditing(p); setEditLabel(p.label); setEditAttributes(Object.entries(p.attributes ?? {}).map(([k, v]) => `${k}: ${v}`).join(', ')) }}
+                onEdit={(p) => setEditing(p)}
                 onDelete={handleDelete}
                 onMove={handleMove}
                 onNavigateToItems={onNavigateToItems}
+                addingUnderId={addingUnderId}
+                newType={newType}
+                newLabel={newLabel}
+                setNewType={setNewType}
+                setNewLabel={setNewLabel}
+                onAddChild={startAddChild}
+                onCancelAddChild={cancelAddChild}
+                onAddChildSubmit={handleAddChild}
               />
             ))}
           </div>
