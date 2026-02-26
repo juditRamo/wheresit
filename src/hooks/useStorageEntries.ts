@@ -31,7 +31,7 @@ export function useStorageEntries(householdId: string | null) {
 
   // When place_id is set, the DB derives location_description from the place hierarchy (see sync_storage_entry_location_description trigger).
   const updateEntry = useCallback(
-    async (id: string, data: Partial<Pick<StorageEntry, 'item_name' | 'room_key' | 'spot_key' | 'spot_detail' | 'category_key' | 'location_description' | 'photo_path' | 'place_id'>>) => {
+    async (id: string, data: Partial<Pick<StorageEntry, 'item_name' | 'category_key' | 'location_description' | 'photo_path' | 'place_id'>>) => {
       const { error } = await supabase
         .from('storage_entries')
         .update({ ...data, updated_at: new Date().toISOString() })
@@ -57,26 +57,25 @@ export function useStorageEntries(householdId: string | null) {
   const createEntry = useCallback(
     async (data: {
       item_name: string
-      room_key: string | null
-      spot_key: string | null
-      spot_detail: string | null
       category_key: string | null
       location_description: string
       photo_path?: string | null
       place_id?: string | null
     }) => {
-      if (!householdId) return { error: new Error('No household') }
+      if (!householdId) return { data: null, error: new Error('No household') }
       const { data: session } = await supabase.auth.getSession()
       const userId = session?.session?.user?.id ?? null
-      const { error } = await supabase
+      const { data: inserted, error } = await supabase
         .from('storage_entries')
         .insert({
           household_id: householdId,
           ...data,
           created_by: userId,
         })
+        .select('id')
+        .single()
       if (!error) refetch()
-      return { error }
+      return { data: inserted as { id: string } | null, error }
     },
     [householdId, refetch]
   )

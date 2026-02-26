@@ -1,18 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
+import type { HistoryEventType } from '../types'
 
 export interface ActivityEntry {
   id: string
-  entry_id: string
-  room_key: string | null
-  spot_key: string | null
-  spot_detail: string | null
-  location_description: string
-  moved_by: string | null
-  moved_at: string
-  // joined
-  item_name?: string
-  user_email?: string
+  event_type: HistoryEventType
+  entity_type: 'place' | 'storage_entry'
+  entity_id: string
+  payload: Record<string, unknown>
+  created_at: string
+  actor_id: string | null
 }
 
 export function useActivityFeed(householdId: string | null) {
@@ -22,13 +19,11 @@ export function useActivityFeed(householdId: string | null) {
   const refetch = useCallback(() => {
     if (!householdId) return
     setLoading(true)
-
-    // Fetch location_history joined with storage_entries for item name
     supabase
-      .from('location_history')
-      .select('*, storage_entries(item_name)')
+      .from('history_events')
+      .select('id, event_type, entity_type, entity_id, payload, created_at, actor_id')
       .eq('household_id', householdId)
-      .order('moved_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(20)
       .then(({ data, error }) => {
         setLoading(false)
@@ -38,14 +33,12 @@ export function useActivityFeed(householdId: string | null) {
         }
         const mapped: ActivityEntry[] = data.map((row: Record<string, unknown>) => ({
           id: row.id as string,
-          entry_id: row.entry_id as string,
-          room_key: row.room_key as string | null,
-          spot_key: row.spot_key as string | null,
-          spot_detail: row.spot_detail as string | null,
-          location_description: row.location_description as string,
-          moved_by: row.moved_by as string | null,
-          moved_at: row.moved_at as string,
-          item_name: (row.storage_entries as Record<string, unknown> | null)?.item_name as string | undefined,
+          event_type: row.event_type as HistoryEventType,
+          entity_type: row.entity_type as 'place' | 'storage_entry',
+          entity_id: row.entity_id as string,
+          payload: (row.payload as Record<string, unknown>) ?? {},
+          created_at: row.created_at as string,
+          actor_id: row.actor_id as string | null,
         }))
         setActivities(mapped)
       })

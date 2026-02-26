@@ -316,7 +316,7 @@ Deno.serve(async (req) => {
 
       const { data: existing } = await supabase
         .from('storage_entries')
-        .select('id, location_description')
+        .select('id, location_description, place_id')
         .eq('household_id', householdId)
         .ilike('item_name', itemName)
         .limit(1)
@@ -351,16 +351,24 @@ Deno.serve(async (req) => {
       // Proceed with the write
       let dbError = false
       if (existing) {
-        // Snapshot current location into location_history before updating
         try {
-          await supabase.from('location_history').insert({
-            entry_id: existing.id,
+          await supabase.from('history_events').insert({
             household_id: householdId,
-            room_key: null,
-            spot_key: null,
-            spot_detail: null,
-            location_description: existing.location_description,
-            moved_by: user.id,
+            actor_id: user.id,
+            event_type: 'move_object',
+            entity_type: 'storage_entry',
+            entity_id: existing.id,
+            payload: {
+              item_name: itemName,
+              from: {
+                location_description: existing.location_description,
+                place_id: existing.place_id ?? undefined,
+              },
+              to: {
+                location_description: writeData.location_description,
+                place_id: writeData.place_id ?? undefined,
+              },
+            },
           })
         } catch {
           // Non-critical: don't fail the store if history insert fails
@@ -385,6 +393,22 @@ Deno.serve(async (req) => {
           dbError = true
         } else if (inserted) {
           entryIdForConcept = inserted.id as string
+          try {
+            await supabase.from('history_events').insert({
+              household_id: householdId,
+              actor_id: user.id,
+              event_type: 'add_object',
+              entity_type: 'storage_entry',
+              entity_id: inserted.id,
+              payload: {
+                item_name: itemName,
+                location_description: writeData.location_description,
+                place_id: writeData.place_id ?? undefined,
+              },
+            })
+          } catch {
+            // Non-critical
+          }
         }
       }
 
@@ -495,17 +519,23 @@ Deno.serve(async (req) => {
           let previousNote = ''
           try {
             const { data: history } = await supabase
-              .from('location_history')
-              .select('location_description')
-              .eq('entry_id', row.id)
-              .order('moved_at', { ascending: false })
+              .from('history_events')
+              .select('payload')
+              .eq('entity_type', 'storage_entry')
+              .eq('entity_id', row.id)
+              .eq('event_type', 'move_object')
+              .order('created_at', { ascending: false })
               .limit(1)
+              .maybeSingle()
 
-            if (history && history.length > 0) {
-              const prevLocation = history[0].location_description
-              previousNote = lang === 'es'
-                ? ` (Anteriormente: ${prevLocation})`
-                : ` (Previously: ${prevLocation})`
+            if (history?.payload && typeof history.payload === 'object' && history.payload !== null && 'from' in history.payload) {
+              const from = (history.payload as { from?: { location_description?: string } }).from
+              const prevLocation = from?.location_description
+              if (prevLocation) {
+                previousNote = lang === 'es'
+                  ? ` (Anteriormente: ${prevLocation})`
+                  : ` (Previously: ${prevLocation})`
+              }
             }
           } catch {
             // Non-critical

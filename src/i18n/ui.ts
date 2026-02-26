@@ -102,6 +102,14 @@ const strings: Record<string, { en: string; es: string }> = {
   'activity.minutes': { en: '{n}m', es: '{n}m' },
   'activity.hours': { en: '{n}h', es: '{n}h' },
   'activity.days': { en: '{n}d', es: '{n}d' },
+  'activity.added_object': { en: 'Added {item} at {location}', es: 'A\u00f1adi\u00f3 {item} en {location}' },
+  'activity.moved_object': { en: 'Moved {item} to {location}', es: 'Movi\u00f3 {item} a {location}' },
+  'activity.edit_object': { en: 'Edited {item}', es: 'Edit\u00f3 {item}' },
+  'activity.delete_object': { en: 'Deleted {item}', es: 'Elimin\u00f3 {item}' },
+  'activity.add_place': { en: 'Added place {label}', es: 'A\u00f1adi\u00f3 lugar {label}' },
+  'activity.moved_place': { en: 'Moved {label} to {location}', es: 'Movi\u00f3 {label} a {location}' },
+  'activity.edit_place': { en: 'Edited place {label}', es: 'Edit\u00f3 lugar {label}' },
+  'activity.delete_place': { en: 'Deleted place {label}', es: 'Elimin\u00f3 lugar {label}' },
 
   // Settings (4.1)
   'settings.title': { en: 'Settings', es: 'Ajustes' },

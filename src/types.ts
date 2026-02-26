@@ -39,16 +39,27 @@ export interface StorageEntry {
   photo_path: string | null
 }
 
-export interface LocationHistory {
+export type HistoryEventType =
+  | 'add_place'
+  | 'move_place'
+  | 'edit_place'
+  | 'delete_place'
+  | 'add_object'
+  | 'move_object'
+  | 'edit_object'
+  | 'delete_object'
+
+export type HistoryEntityType = 'place' | 'storage_entry'
+
+export interface HistoryEvent {
   id: string
-  entry_id: string
   household_id: string
-  room_key: string | null
-  spot_key: string | null
-  spot_detail: string | null
-  location_description: string
-  moved_by: string | null
-  moved_at: string
+  actor_id: string | null
+  event_type: HistoryEventType
+  entity_type: HistoryEntityType
+  entity_id: string
+  payload: Record<string, unknown>
+  created_at: string
 }
 
 export interface QueryResult {

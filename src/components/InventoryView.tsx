@@ -22,6 +22,7 @@ import { usePlaces } from '../hooks/usePlaces'
 import { useLanguage } from '../i18n/LanguageContext'
 import { t, CATEGORIES } from '../i18n/picklists'
 import { ui } from '../i18n/ui'
+import { recordHistoryEvent } from '../lib/historyEvents'
 import type { StorageEntry, LocationRef } from '../types'
 import { ItemEditSheet } from './ItemEditSheet'
 import { DashboardCards } from './DashboardCards'
@@ -151,9 +152,11 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
           placeIds.add(filter.place_id)
           return e.place_id && placeIds.has(e.place_id)
         }
-        const roomMatch = e.room_key === filter.room_key || (!e.room_key && filter.room_key && e.location_description === filter.room_key)
-        if (!roomMatch) return false
-        if (filter.spot_key) return e.spot_key === filter.spot_key
+        if (filter.location_description) {
+          const desc = (e.location_description ?? '').trim()
+          const filterDesc = filter.location_description.trim()
+          return desc === filterDesc || desc.includes(filterDesc) || filterDesc.includes(desc)
+        }
         return true
       })
     : entries
@@ -195,38 +198,64 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
 
   async function handleSaveEdit(data: {
     item_name: string
-    room_key: string | null
-    spot_key: string | null
-    spot_detail: string | null
     category_key: string | null
     location_description: string
     photo_path?: string | null
     place_id?: string | null
   }) {
-    if (editingEntry) {
-      await updateEntry(editingEntry.id, data)
-      setEditingEntry(null)
+    if (!editingEntry) return
+    const locationChanged =
+      editingEntry.location_description !== data.location_description ||
+      (editingEntry.place_id ?? null) !== (data.place_id ?? null)
+    const err = await updateEntry(editingEntry.id, data)
+    if (!err?.error) {
+      if (locationChanged) {
+        recordHistoryEvent(householdId, 'move_object', 'storage_entry', editingEntry.id, {
+          item_name: data.item_name,
+          from: {
+            location_description: editingEntry.location_description,
+            place_id: editingEntry.place_id ?? undefined,
+          },
+          to: {
+            location_description: data.location_description,
+            place_id: data.place_id ?? undefined,
+          },
+        })
+      } else {
+        recordHistoryEvent(householdId, 'edit_object', 'storage_entry', editingEntry.id, {
+          item_name: data.item_name,
+          changes: { ...data },
+        })
+      }
     }
+    setEditingEntry(null)
   }
 
   async function handleDeleteEntry() {
-    if (editingEntry) {
-      await deleteEntry(editingEntry.id)
-      setEditingEntry(null)
-    }
+    if (!editingEntry) return
+    recordHistoryEvent(householdId, 'delete_object', 'storage_entry', editingEntry.id, {
+      item_name: editingEntry.item_name,
+      last_location_description: editingEntry.location_description || undefined,
+    })
+    await deleteEntry(editingEntry.id)
+    setEditingEntry(null)
   }
 
   async function handleCreateEntry(data: {
     item_name: string
-    room_key: string | null
-    spot_key: string | null
-    spot_detail: string | null
     category_key: string | null
     location_description: string
     photo_path?: string | null
     place_id?: string | null
   }) {
-    await createEntry(data)
+    const { data: inserted, error } = await createEntry(data)
+    if (!error && inserted) {
+      recordHistoryEvent(householdId, 'add_object', 'storage_entry', inserted.id, {
+        item_name: data.item_name,
+        location_description: data.location_description,
+        place_id: data.place_id ?? undefined,
+      })
+    }
     setShowAddSheet(false)
   }
 
@@ -271,7 +300,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
                     .map((p) => p.label)
                     .join(' › ') ||
                   (filter.place_label ?? getPlaceById(filter.place_id)?.label ?? filter.place_id)
-                : (filter.room_key ?? ''),
+                : (filter.place_label ?? filter.location_description ?? ''),
             })}
           </span>
           <button className="inventory__filter-clear" onClick={onClearFilter}>

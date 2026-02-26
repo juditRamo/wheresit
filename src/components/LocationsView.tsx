@@ -5,6 +5,7 @@ import { usePlaces, type PlaceWithChildren } from '../hooks/usePlaces'
 import { useStorageEntries } from '../hooks/useStorageEntries'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
+import { recordHistoryEvent } from '../lib/historyEvents'
 import type { LocationRef } from '../types'
 import { PlaceDrillDown } from './PlaceDrillDown'
 import { PlaceEditSheet } from './PlaceEditSheet'
@@ -243,8 +244,13 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
   async function handleAdd() {
     const label = newLabel.trim()
     if (!label) return
-    const { error } = await createPlace({ type: newType, label })
-    if (!error) {
+    const { data: created, error } = await createPlace({ type: newType, label })
+    if (!error && created) {
+      recordHistoryEvent(householdId, 'add_place', 'place', created.id, {
+        label: created.label,
+        type: created.type,
+        canonical_key: created.canonical_key ?? undefined,
+      })
       setNewLabel('')
       setAdding(false)
       refetch()
@@ -264,8 +270,14 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
   async function handleAddChild(parentId: string) {
     const label = newLabel.trim()
     if (!label) return
-    const { error } = await createPlace({ type: newType, label, parent_place_id: parentId })
-    if (!error) {
+    const { data: created, error } = await createPlace({ type: newType, label, parent_place_id: parentId })
+    if (!error && created) {
+      recordHistoryEvent(householdId, 'add_place', 'place', created.id, {
+        label: created.label,
+        type: created.type,
+        parent_place_id: parentId,
+        canonical_key: created.canonical_key ?? undefined,
+      })
       setNewLabel('')
       setAddingUnderId(null)
       refetch()
@@ -274,19 +286,37 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
 
   async function handleSaveEdit(data: { label: string; type: string; attributes: Record<string, string> }) {
     if (!editing) return
-    await updatePlace(editing.id, { label: data.label, type: data.type, attributes: data.attributes })
+    const err = await updatePlace(editing.id, { label: data.label, type: data.type, attributes: data.attributes })
+    if (!err?.error) {
+      recordHistoryEvent(householdId, 'edit_place', 'place', editing.id, {
+        label: data.label,
+        changes: { label: data.label, type: data.type, attributes: data.attributes },
+      })
+    }
     setEditing(null)
     refetch()
   }
 
   async function handleDelete(p: PlaceWithChildren) {
     if (!window.confirm(ui('locations.delete_confirm', language))) return
+    const pathDesc = getPlacePath(p.id).map((x) => x.label).join(' › ')
+    recordHistoryEvent(householdId, 'delete_place', 'place', p.id, {
+      label: p.label,
+      path_or_description: pathDesc || undefined,
+    })
     await deletePlace(p.id)
     refetch()
   }
 
   async function handleMove(p: PlaceWithChildren, newParentId: string | null) {
-    await movePlace(p.id, newParentId)
+    const err = await movePlace(p.id, newParentId)
+    if (!err?.error) {
+      recordHistoryEvent(householdId, 'move_place', 'place', p.id, {
+        label: p.label,
+        from_parent_place_id: p.parent_place_id ?? undefined,
+        to_parent_place_id: newParentId ?? undefined,
+      })
+    }
     refetch()
   }
 
