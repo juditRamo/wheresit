@@ -29,6 +29,7 @@ export function useStorageEntries(householdId: string | null) {
     refetch()
   }, [householdId, refetch])
 
+  // When place_id is set, the DB derives location_description from the place hierarchy (see sync_storage_entry_location_description trigger).
   const updateEntry = useCallback(
     async (id: string, data: Partial<Pick<StorageEntry, 'item_name' | 'room_key' | 'spot_key' | 'spot_detail' | 'category_key' | 'location_description' | 'photo_path' | 'place_id'>>) => {
       const { error } = await supabase
