@@ -33,7 +33,7 @@ export function ItemEditSheet({ mode, entry, householdId, onSave, onDelete, onCl
   const [categoryKey, setCategoryKey] = useState(entry?.category_key ?? '')
   const [photoPath, setPhotoPath] = useState<string | null>(entry?.photo_path ?? null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showPlacePicker, setShowPlacePicker] = useState(false)
+  const [showPlacePicker, setShowPlacePicker] = useState(mode === 'create' || !entry?.place_id)
 
   function getLocationDescription(): string {
     if (placeId) {
@@ -43,6 +43,8 @@ export function ItemEditSheet({ mode, entry, householdId, onSave, onDelete, onCl
     return locationText.trim()
   }
 
+  // NOTE: Renaming an item does not update item_concepts linkage.
+  // That would require calling the edge function's concept logic from the client.
   function handleSave() {
     if (!itemName.trim()) return
     onSave({

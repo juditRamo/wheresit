@@ -16,13 +16,6 @@ export function BottomNav({ active, onNavigate }: BottomNavProps) {
   return (
     <nav className="bottom-nav">
       <button
-        className={`bottom-nav__item ${active === 'chat' ? 'bottom-nav__item--active' : ''}`}
-        onClick={() => onNavigate('chat')}
-      >
-        <MessageSquare size={20} />
-        <span className="bottom-nav__label">{ui('nav.chat', language)}</span>
-      </button>
-      <button
         className={`bottom-nav__item ${active === 'items' ? 'bottom-nav__item--active' : ''}`}
         onClick={() => onNavigate('items')}
       >
@@ -42,6 +35,13 @@ export function BottomNav({ active, onNavigate }: BottomNavProps) {
       >
         <Search size={20} />
         <span className="bottom-nav__label">{ui('nav.search', language)}</span>
+      </button>
+      <button
+        className={`bottom-nav__item ${active === 'chat' ? 'bottom-nav__item--active' : ''}`}
+        onClick={() => onNavigate('chat')}
+      >
+        <MessageSquare size={20} />
+        <span className="bottom-nav__label">{ui('nav.chat', language)}</span>
       </button>
     </nav>
   )

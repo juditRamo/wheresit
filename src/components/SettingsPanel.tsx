@@ -30,6 +30,8 @@ interface MemberInfo {
   display_name?: string | null
 }
 
+const ADD_NEW_SENTINEL = '__add_new__'
+
 export function SettingsPanel({ user, profile, updateProfile, household, households, selectedId, onSelectHousehold, onCreateHousehold, onJoinHousehold, onUpdateHouseholdName, onClose }: SettingsPanelProps) {
   const { language, setLanguage } = useLanguage()
   const { theme, setTheme } = useTheme()
@@ -38,7 +40,6 @@ export function SettingsPanel({ user, profile, updateProfile, household, househo
   const [editProfileOpen, setEditProfileOpen] = useState(false)
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '')
-  const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [profileSaveStatus, setProfileSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
@@ -53,7 +54,6 @@ export function SettingsPanel({ user, profile, updateProfile, household, househo
   const [editHouseholdNameOpen, setEditHouseholdNameOpen] = useState(false)
   const [householdName, setHouseholdName] = useState(household.name)
   const [householdNameSaveStatus, setHouseholdNameSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
-  const ADD_NEW_SENTINEL = '__add_new__'
   const [addHouseholdOpen, setAddHouseholdOpen] = useState(false)
 
   useEffect(() => {
@@ -126,8 +126,7 @@ export function SettingsPanel({ user, profile, updateProfile, household, househo
     const { error } = await updateProfile({ display_name: displayName || null })
     setProfileSaveStatus(error ? 'error' : 'saved')
     if (!error) setEditProfileOpen(false)
-    if (error) setTimeout(() => setProfileSaveStatus('idle'), 2000)
-    else setTimeout(() => setProfileSaveStatus('idle'), 2000)
+    setTimeout(() => setProfileSaveStatus('idle'), 2000)
   }
 
   async function handleChangePassword() {
@@ -150,7 +149,6 @@ export function SettingsPanel({ user, profile, updateProfile, household, househo
       return
     }
     setPasswordStatus('success')
-    setCurrentPassword('')
     setNewPassword('')
     setConfirmPassword('')
     setTimeout(() => {
@@ -259,14 +257,6 @@ export function SettingsPanel({ user, profile, updateProfile, household, househo
             </button>
           ) : (
             <div className="settings-panel__edit-form">
-              <label className="settings-panel__label">{ui('settings.current_password', language)}</label>
-              <input
-                type="password"
-                className="settings-panel__input"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                autoComplete="current-password"
-              />
               <label className="settings-panel__label">{ui('settings.new_password', language)}</label>
               <input
                 type="password"

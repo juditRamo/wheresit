@@ -36,7 +36,7 @@ function AppInner() {
   const { setLanguage } = useLanguage()
   const syncedProfileRef = useRef<string | null>(null)
 
-  const [activeTab, setActiveTab] = useState<NavTab>('chat')
+  const [activeTab, setActiveTab] = useState<NavTab>('items')
   const [itemsFilter, setItemsFilter] = useState<LocationRef | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [addItemTrigger, setAddItemTrigger] = useState(0)

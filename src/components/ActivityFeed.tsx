@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { MoveRight, Plus, Pencil, Trash2, MapPin } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useActivityFeed } from '../hooks/useActivityFeed'
@@ -90,8 +90,12 @@ export function ActivityFeed({ householdId }: ActivityFeedProps) {
   const { language } = useLanguage()
   const [actorDisplayNames, setActorDisplayNames] = useState<Record<string, string>>({})
 
+  const actorIds = useMemo(
+    () => [...new Set(activities.map((a) => a.actor_id).filter(Boolean) as string[])],
+    [activities]
+  )
+
   useEffect(() => {
-    const actorIds = [...new Set(activities.map((a) => a.actor_id).filter(Boolean) as string[])]
     if (actorIds.length === 0) {
       setActorDisplayNames({})
       return
@@ -110,7 +114,7 @@ export function ActivityFeed({ householdId }: ActivityFeedProps) {
         setActorDisplayNames(map)
       })
     return () => { cancelled = true }
-  }, [activities])
+  }, [actorIds])
 
   if (!loading && activities.length === 0) {
     return (

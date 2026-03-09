@@ -8,7 +8,8 @@
       "Bash(npx vite:*)",
       "Bash(supabase functions deploy:*)",
       "Bash(npx supabase:*)",
-      "Bash(supabase db push:*)"
+      "Bash(supabase db push:*)",
+      "Bash(npm run:*)"
     ]
   }
 }

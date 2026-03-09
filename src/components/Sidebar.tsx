@@ -11,10 +11,10 @@ interface SidebarProps {
 }
 
 const navItems: { tab: NavTab; icon: typeof MessageSquare }[] = [
-  { tab: 'chat', icon: MessageSquare },
   { tab: 'items', icon: Archive },
   { tab: 'locations', icon: MapPin },
   { tab: 'search', icon: Search },
+  { tab: 'chat', icon: MessageSquare },
 ]
 
 export function Sidebar({ active, onNavigate, onSettingsClick }: SidebarProps) {

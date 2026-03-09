@@ -424,15 +424,21 @@ export function InventoryView({ householdId, filter, onClearFilter, addItemTrigg
           })}
           {filtered.length === 0 && !loading && (
             <div className="inventory__empty">
-              <p>{ui('inventory.empty', language)}</p>
-              <button
-                className="inventory__icon-btn inventory__icon-btn--gold"
-                onClick={() => setShowAddSheet(true)}
-                aria-label={ui('add.title', language)}
-              >
-                <Plus size={14} color="var(--text-on-gold)" />
-                {ui('add.title', language)}
-              </button>
+              {entries.length === 0 && !searchQuery ? (
+                <>
+                  <p className="inventory__empty-title">{ui('inventory.empty_welcome', language)}</p>
+                  <p className="inventory__empty-hint">{ui('inventory.empty_hint', language)}</p>
+                  <button
+                    className="inventory__empty-cta"
+                    onClick={() => setShowAddSheet(true)}
+                  >
+                    <Plus size={16} />
+                    {ui('add.title', language)}
+                  </button>
+                </>
+              ) : (
+                <p>{ui('inventory.empty', language)}</p>
+              )}
             </div>
           )}
         </div>

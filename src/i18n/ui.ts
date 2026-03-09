@@ -42,6 +42,8 @@ const strings: Record<string, { en: string; es: string }> = {
   'inventory.by_category': { en: 'By Category', es: 'Por Categor\u00eda' },
   'inventory.recent': { en: 'Recent', es: 'Recientes' },
   'inventory.empty': { en: 'No items found.', es: 'No se encontraron objetos.' },
+  'inventory.empty_welcome': { en: 'Your inventory is empty', es: 'Tu inventario est\u00e1 vac\u00edo' },
+  'inventory.empty_hint': { en: 'Start by adding the first thing you want to keep track of.', es: 'Empieza a\u00f1adiendo lo primero que quieras recordar d\u00f3nde est\u00e1.' },
   'inventory.item_one': { en: '1 item', es: '1 objeto' },
   'inventory.item_other': { en: '{n} items', es: '{n} objetos' },
   'inventory.clear_filter': { en: 'Clear filter', es: 'Quitar filtro' },
@@ -51,7 +53,7 @@ const strings: Record<string, { en: string; es: string }> = {
   'inventory.other_room': { en: 'Other', es: 'Otros' },
 
   // Search tab placeholder
-  'search.coming_soon': { en: 'Search coming soon', es: 'B\u00fasqueda pr\u00f3ximamente' },
+  // 'search.coming_soon' removed — SearchView is now functional
 
   // Edit / Delete (1.1)
   'edit.title': { en: 'Edit item', es: 'Editar objeto' },

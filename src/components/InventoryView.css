@@ -281,11 +281,48 @@
 
 .inventory__empty {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 48px 20px;
   color: var(--text-tertiary);
   font-size: 13px;
+  text-align: center;
+  gap: 8px;
+}
+
+.inventory__empty-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.inventory__empty-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0 0 8px;
+  max-width: 280px;
+}
+
+.inventory__empty-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 24px;
+  background: var(--gold-primary);
+  color: var(--text-on-gold);
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.inventory__empty-cta:hover {
+  opacity: 0.9;
 }
 
 @media (min-width: 1024px) {
