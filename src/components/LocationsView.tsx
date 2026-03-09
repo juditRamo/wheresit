@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronRight, Plus, Pencil, Trash2, MapPinPen, ToolCase, Inbox, DoorOpen, DoorClosed, LibraryBig, Folder, MapPin } from 'lucide-react'
+import { ChevronRight, Copy, Plus, Pencil, Trash2, MapPinPen, ToolCase, Inbox, DoorOpen, DoorClosed, LibraryBig, Folder, MapPin } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { usePlaces, type PlaceWithChildren } from '../hooks/usePlaces'
 import { useStorageEntries } from '../hooks/useStorageEntries'
@@ -40,6 +40,7 @@ function PlaceNode({
   getPlacePath,
   getDescendantIds,
   onEdit,
+  onDuplicate,
   onDelete,
   onMove,
   onNavigateToItems,
@@ -61,6 +62,7 @@ function PlaceNode({
   getPlacePath: (placeId: string) => Array<{ label: string }>
   getDescendantIds: (placeId: string) => string[]
   onEdit: (p: PlaceWithChildren) => void
+  onDuplicate: (p: PlaceWithChildren) => void
   onDelete: (p: PlaceWithChildren) => void
   onMove: (p: PlaceWithChildren, newParentId: string | null) => void
   onNavigateToItems?: (filter: LocationRef) => void
@@ -137,6 +139,9 @@ function PlaceNode({
           <button className="locations-view__action" onClick={() => onEdit(place)} title={ui('locations.edit', language)}>
             <Pencil size={12} />
           </button>
+          <button className="locations-view__action" onClick={() => onDuplicate(place)} title={ui('locations.duplicate', language)}>
+            <Copy size={12} />
+          </button>
           <button className="locations-view__action locations-view__action--danger" onClick={() => onDelete(place)} title={ui('locations.delete', language)}>
             <Trash2 size={12} />
           </button>
@@ -196,6 +201,7 @@ function PlaceNode({
               getPlacePath={getPlacePath}
               getDescendantIds={getDescendantIds}
               onEdit={onEdit}
+              onDuplicate={onDuplicate}
               onDelete={onDelete}
               onMove={onMove}
               onNavigateToItems={onNavigateToItems}
@@ -320,6 +326,25 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
     refetch()
   }
 
+  async function handleDuplicate(p: PlaceWithChildren) {
+    const label = p.label.trim() ? `${p.label} (copy)` : '(copy)'
+    const { data: created, error } = await createPlace({
+      type: p.type,
+      label,
+      parent_place_id: p.parent_place_id ?? null,
+      attributes: p.attributes ?? {},
+    })
+    if (!error && created) {
+      recordHistoryEvent(householdId, 'add_place', 'place', created.id, {
+        label: created.label,
+        type: created.type,
+        canonical_key: created.canonical_key ?? undefined,
+        duplicated_from_place_id: p.id,
+      })
+      refetch()
+    }
+  }
+
   return (
     <div className="locations-view">
       <div className="locations-view__header">
@@ -380,6 +405,7 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
                 getPlacePath={getPlacePath}
                 getDescendantIds={getDescendantIds}
                 onEdit={(p) => setEditing(p)}
+                onDuplicate={handleDuplicate}
                 onDelete={handleDelete}
                 onMove={handleMove}
                 onNavigateToItems={onNavigateToItems}

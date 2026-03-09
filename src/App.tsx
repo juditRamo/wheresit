@@ -1,8 +1,11 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useAuth } from './hooks/useAuth'
 import { useHousehold } from './hooks/useHousehold'
-import { LanguageProvider } from './i18n/LanguageContext'
-import { ThemeProvider } from './theme/ThemeContext'
+import { useProfile } from './hooks/useProfile'
+import { LanguageProvider, useLanguage } from './i18n/LanguageContext'
+import { ThemeProvider, useTheme } from './theme/ThemeContext'
+import type { ThemeMode } from './theme/ThemeContext'
+import type { Lang } from './i18n/picklists'
 import { Auth } from './components/Auth'
 import { HouseholdSelect } from './components/HouseholdSelect'
 import { Header } from './components/Header'
@@ -25,12 +28,31 @@ function AppInner() {
     setSelectedId,
     createHousehold,
     joinHousehold,
+    updateHouseholdName,
     loading: householdLoading,
   } = useHousehold(user?.id)
+  const { profile, updateProfile, loading: profileLoading } = useProfile(user?.id)
+  const { setTheme } = useTheme()
+  const { setLanguage } = useLanguage()
+  const syncedProfileRef = useRef<string | null>(null)
 
   const [activeTab, setActiveTab] = useState<NavTab>('chat')
   const [itemsFilter, setItemsFilter] = useState<LocationRef | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [addItemTrigger, setAddItemTrigger] = useState(0)
+  const handleAddItemClick = useCallback(() => { setAddItemTrigger((t) => t + 1); setActiveTab('items'); }, [])
+
+  // Sync theme/language from profile when profile loads (once per user)
+  useEffect(() => {
+    if (profileLoading || !user || !profile || syncedProfileRef.current === user.id) return
+    syncedProfileRef.current = user.id
+    if (profile.theme && ['light', 'dark', 'system'].includes(profile.theme)) {
+      setTheme(profile.theme as ThemeMode)
+    }
+    if (profile.language && (profile.language === 'en' || profile.language === 'es')) {
+      setLanguage(profile.language as Lang)
+    }
+  }, [profileLoading, user, profile, setTheme, setLanguage])
 
   const handleNavigateToItems = useCallback((filter: LocationRef) => {
     setItemsFilter(filter)
@@ -91,13 +113,13 @@ function AppInner() {
     <div className="app app--main">
       <Sidebar active={activeTab} onNavigate={handleTabNavigate} onSettingsClick={() => setSettingsOpen(true)} />
       <div className="app__body">
-        <Header onMenuClick={() => setSettingsOpen(true)} />
+        <Header onMenuClick={() => setSettingsOpen(true)} onAddClick={handleAddItemClick} />
         <main className="app__content">
           {activeTab === 'chat' && selectedId && (
             <Chat householdId={selectedId} onNavigateToItems={handleNavigateToItems} />
           )}
           {activeTab === 'items' && selectedId && (
-            <InventoryView householdId={selectedId} filter={itemsFilter} onClearFilter={() => setItemsFilter(null)} />
+            <InventoryView householdId={selectedId} filter={itemsFilter} onClearFilter={() => setItemsFilter(null)} addItemTrigger={addItemTrigger} />
           )}
           {activeTab === 'locations' && selectedId && (
             <LocationsView householdId={selectedId} onNavigateToItems={handleNavigateToItems} />
@@ -111,12 +133,26 @@ function AppInner() {
 
       {settingsOpen && selectedHousehold && selectedId && (
         <SettingsPanel
+          user={user}
+          profile={profile}
+          updateProfile={updateProfile}
           household={selectedHousehold}
           households={households}
           selectedId={selectedId}
           onSelectHousehold={setSelectedId}
+          onCreateHousehold={async (name) => {
+            const result = await createHousehold(name)
+            return { error: result.error }
+          }}
+          onJoinHousehold={async (householdId) => {
+            const result = await joinHousehold(householdId)
+            return { error: result.error }
+          }}
+          onUpdateHouseholdName={async (householdId, name) => {
+            const result = await updateHouseholdName(householdId, name)
+            return { data: result.data ?? undefined, error: result.error }
+          }}
           onClose={() => setSettingsOpen(false)}
-          onNavigateToLocations={() => { setActiveTab('locations'); setSettingsOpen(false); }}
         />
       )}
     </div>

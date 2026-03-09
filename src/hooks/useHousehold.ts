@@ -119,6 +119,19 @@ export function useHousehold(userId: string | undefined) {
     [userId, setSelectedId]
   )
 
+  const updateHouseholdName = useCallback(async (householdId: string, name: string) => {
+    const { data, error } = await supabase
+      .from('households')
+      .update({ name })
+      .eq('id', householdId)
+      .select('id, name, created_at, created_by')
+      .single()
+    if (!error && data) {
+      setHouseholds((prev) => prev.map((h) => (h.id === householdId ? { ...h, name } : h)))
+    }
+    return { data, error }
+  }, [])
+
   return {
     households,
     selectedId,
@@ -126,6 +139,7 @@ export function useHousehold(userId: string | undefined) {
     setSelectedId,
     createHousehold,
     joinHousehold,
+    updateHouseholdName,
     loading,
   }
 }

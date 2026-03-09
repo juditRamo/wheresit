@@ -2,6 +2,14 @@ import type { User, Session } from '@supabase/supabase-js'
 
 export type { User, Session }
 
+export interface Profile {
+  id: string
+  display_name: string | null
+  avatar_url: string | null
+  theme: string | null
+  language: string | null
+}
+
 export interface Household {
   id: string
   name: string

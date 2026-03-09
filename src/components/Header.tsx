@@ -1,13 +1,14 @@
-import { MapPin, Menu } from 'lucide-react'
+import { MapPin, Menu, Plus } from 'lucide-react'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
 import './Header.css'
 
 interface HeaderProps {
   onMenuClick?: () => void
+  onAddClick?: () => void
 }
 
-export function Header({ onMenuClick }: HeaderProps) {
+export function Header({ onMenuClick, onAddClick }: HeaderProps) {
   const { language } = useLanguage()
 
   return (
@@ -25,6 +26,15 @@ export function Header({ onMenuClick }: HeaderProps) {
         <div className="header__lang-indicator">
           {language.toUpperCase()}
         </div>
+        {onAddClick && (
+          <button
+            className="inventory__icon-btn inventory__icon-btn--gold"
+            aria-label="Add item"
+            onClick={onAddClick}
+          >
+            <Plus size={14} color="var(--text-on-gold)" />
+          </button>
+        )}
         <button className="header__menu" onClick={onMenuClick}>
           <Menu size={20} color="var(--text-secondary)" />
         </button>

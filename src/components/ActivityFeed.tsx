@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react'
 import { MoveRight, Plus, Pencil, Trash2, MapPin } from 'lucide-react'
+import { supabase } from '../supabaseClient'
 import { useActivityFeed } from '../hooks/useActivityFeed'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
@@ -34,12 +36,12 @@ function getLocationFromPayload(payload: Record<string, unknown>, eventType: His
   return (payload.path_or_description as string) ?? (payload.last_location_description as string) ?? '—'
 }
 
-function ActivityItem({ a, language }: { a: ActivityEntry; language: 'en' | 'es' }) {
+function ActivityItem({ a, language, actorDisplayNames }: { a: ActivityEntry; language: 'en' | 'es'; actorDisplayNames: Record<string, string> }) {
   const payload = a.payload
   const itemName = (payload.item_name as string) ?? '?'
   const label = (payload.label as string) ?? '?'
   const location = getLocationFromPayload(payload, a.event_type)
-  const userLabel = a.actor_id ? a.actor_id.slice(0, 8) : '?'
+  const userLabel = a.actor_id ? (actorDisplayNames[a.actor_id] ?? a.actor_id.slice(0, 8)) : '?'
 
   const eventConfig: Record<HistoryEventType, { key: string; vars: Record<string, string>; Icon: typeof MoveRight }> = {
     add_object: {
@@ -86,6 +88,29 @@ function ActivityItem({ a, language }: { a: ActivityEntry; language: 'en' | 'es'
 export function ActivityFeed({ householdId }: ActivityFeedProps) {
   const { activities, loading } = useActivityFeed(householdId)
   const { language } = useLanguage()
+  const [actorDisplayNames, setActorDisplayNames] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    const actorIds = [...new Set(activities.map((a) => a.actor_id).filter(Boolean) as string[])]
+    if (actorIds.length === 0) {
+      setActorDisplayNames({})
+      return
+    }
+    let cancelled = false
+    supabase
+      .from('profiles')
+      .select('id, display_name')
+      .in('id', actorIds)
+      .then(({ data }) => {
+        if (cancelled) return
+        const map: Record<string, string> = {}
+        for (const p of data ?? []) {
+          if (p.display_name) map[p.id] = p.display_name
+        }
+        setActorDisplayNames(map)
+      })
+    return () => { cancelled = true }
+  }, [activities])
 
   if (!loading && activities.length === 0) {
     return (
@@ -98,7 +123,7 @@ export function ActivityFeed({ householdId }: ActivityFeedProps) {
   return (
     <div className="activity-feed">
       {activities.map((a) => (
-        <ActivityItem key={a.id} a={a} language={language} />
+        <ActivityItem key={a.id} a={a} language={language} actorDisplayNames={actorDisplayNames} />
       ))}
     </div>
   )

@@ -49,8 +49,10 @@
 }
 
 .settings-panel__close {
-  width: 32px;
-  height: 32px;
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -76,6 +78,182 @@
   margin: 0 0 12px;
 }
 
+/* Profile section */
+.settings-panel__profile-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.settings-panel__profile-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-panel__profile-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 2px;
+}
+
+.settings-panel__email {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+  word-break: break-all;
+}
+
+.settings-panel__profile-edit-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold-primary);
+  background: rgba(201, 169, 98, 0.08);
+  border: 1px solid var(--gold-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.settings-panel__profile-edit-icon:hover {
+  background: rgba(201, 169, 98, 0.15);
+}
+
+.settings-panel__change-password-link {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 6px 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gold-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.settings-panel__change-password-link:hover {
+  opacity: 0.85;
+}
+
+.settings-panel__edit-profile-btn,
+.settings-panel__change-password-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gold-primary);
+  background: rgba(201, 169, 98, 0.08);
+  border: 1px solid var(--gold-border);
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: background 0.15s;
+}
+
+.settings-panel__edit-profile-btn:hover,
+.settings-panel__change-password-btn:hover {
+  background: rgba(201, 169, 98, 0.15);
+}
+
+.settings-panel__change-password-btn {
+  margin-bottom: 0;
+}
+
+.settings-panel__edit-form {
+  margin-top: 12px;
+  margin-bottom: 16px;
+}
+
+.settings-panel__edit-form .settings-panel__edit-form {
+  margin-bottom: 0;
+}
+
+.settings-panel__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  margin: 0 0 4px;
+}
+
+.settings-panel__input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border: 1px solid var(--border-dark);
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.settings-panel__form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.settings-panel__btn-primary,
+.settings-panel__btn-secondary {
+  min-height: 44px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.settings-panel__btn-primary {
+  color: var(--bg-card);
+  background: var(--gold-primary);
+  border: 1px solid var(--gold-primary);
+}
+
+.settings-panel__btn-primary:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.settings-panel__btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.settings-panel__btn-secondary {
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-dark);
+}
+
+.settings-panel__btn-secondary:hover {
+  background: var(--border-dark);
+}
+
+.settings-panel__error {
+  font-size: 12px;
+  color: var(--danger);
+  margin: 0 0 8px;
+}
+
+.settings-panel__success {
+  font-size: 12px;
+  color: var(--gold-primary);
+  margin: 0 0 8px;
+}
+
 .settings-panel__household-name {
   font-family: var(--font-display);
   font-size: 16px;
@@ -89,6 +267,123 @@
   color: var(--text-tertiary);
   font-family: monospace;
   word-break: break-all;
+}
+
+.settings-panel__add-household {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.settings-panel__add-household-btn {
+  min-height: 44px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gold-primary);
+  background: rgba(201, 169, 98, 0.08);
+  border: 1px solid var(--gold-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.settings-panel__add-household-btn:hover {
+  background: rgba(201, 169, 98, 0.15);
+}
+
+.settings-panel__household-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.settings-panel__household-name-row .settings-panel__household-name {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-panel__edit-household-name-btn {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gold-primary);
+  background: rgba(201, 169, 98, 0.08);
+  border: 1px solid var(--gold-border);
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.settings-panel__edit-household-name-btn:hover {
+  background: rgba(201, 169, 98, 0.15);
+}
+
+.settings-panel__household-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.settings-panel__household-row .settings-panel__select--household {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-panel__household-edit-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold-primary);
+  background: rgba(201, 169, 98, 0.08);
+  border: 1px solid var(--gold-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.settings-panel__household-edit-icon:hover {
+  background: rgba(201, 169, 98, 0.15);
+}
+
+.settings-panel__add-household-flow {
+  margin-bottom: 12px;
+}
+
+.settings-panel__add-household-back {
+  margin-bottom: 12px;
+  padding: 6px 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gold-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.settings-panel__add-household-back:hover {
+  opacity: 0.85;
+}
+
+.settings-panel__subsection-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  margin: 16px 0 8px;
 }
 
 /* Members list */
@@ -106,6 +401,11 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 160px;
+}
+
+.settings-panel__member-you {
+  color: var(--text-tertiary);
+  font-weight: 500;
 }
 
 .settings-panel__member-role {
@@ -142,6 +442,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  min-height: 44px;
   padding: 8px 12px;
   font-size: 11px;
   font-weight: 600;
@@ -165,7 +466,8 @@
 
 .settings-panel__lang-btn {
   flex: 1;
-  height: 36px;
+  min-height: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -191,7 +493,8 @@
 
 .settings-panel__theme-btn {
   flex: 1;
-  height: 36px;
+  min-height: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -209,10 +512,19 @@
   background: var(--gold-dim);
 }
 
+/* User Settings — smaller buttons */
+.settings-panel__section--user-settings .settings-panel__theme-btn,
+.settings-panel__section--user-settings .settings-panel__lang-btn {
+  min-height: 36px;
+  height: 36px;
+  font-size: 11px;
+}
+
 /* Household select */
 .settings-panel__select {
   width: 100%;
-  height: 36px;
+  min-height: 44px;
+  height: 44px;
   padding: 0 10px;
   background: var(--bg-input);
   border: 1px solid var(--border-dark);
@@ -262,6 +574,14 @@
 
 .settings-panel__signout:hover {
   background: var(--danger-hover);
+}
+
+/* Mobile: full-width panel on small screens for better touch targets and scroll */
+@media (max-width: 480px) {
+  .settings-panel {
+    width: 100%;
+    max-width: 100%;
+  }
 }
 
 @media (min-width: 1024px) {

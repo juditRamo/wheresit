@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Search,
   RefreshCw,
@@ -33,6 +33,7 @@ interface InventoryViewProps {
   householdId: string
   filter?: LocationRef | null
   onClearFilter: () => void
+  addItemTrigger?: number
 }
 
 type SortTab = 'room' | 'category' | 'recent' | 'activity'
@@ -135,7 +136,7 @@ function groupByCategory(entries: StorageEntry[], lang: 'en' | 'es'): Record<str
   return groups
 }
 
-export function InventoryView({ householdId, filter, onClearFilter }: InventoryViewProps) {
+export function InventoryView({ householdId, filter, onClearFilter, addItemTrigger }: InventoryViewProps) {
   const { entries, loading, refetch, updateEntry, deleteEntry, createEntry, stats } = useStorageEntries(householdId)
   const { getDescendantIds, getPlaceById, getPlacePath, places } = usePlaces(householdId)
   const { language } = useLanguage()
@@ -143,6 +144,12 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
   const [searchQuery, setSearchQuery] = useState('')
   const [editingEntry, setEditingEntry] = useState<StorageEntry | null>(null)
   const [showAddSheet, setShowAddSheet] = useState(false)
+
+  useEffect(() => {
+    if (addItemTrigger != null && addItemTrigger > 0) {
+      setShowAddSheet(true)
+    }
+  }, [addItemTrigger])
 
   // Apply location filter if set
   let filtered = filter
@@ -418,6 +425,14 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
           {filtered.length === 0 && !loading && (
             <div className="inventory__empty">
               <p>{ui('inventory.empty', language)}</p>
+              <button
+                className="inventory__icon-btn inventory__icon-btn--gold"
+                onClick={() => setShowAddSheet(true)}
+                aria-label={ui('add.title', language)}
+              >
+                <Plus size={14} color="var(--text-on-gold)" />
+                {ui('add.title', language)}
+              </button>
             </div>
           )}
         </div>
