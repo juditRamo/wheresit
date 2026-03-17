@@ -1,6 +1,7 @@
 .app {
-  min-height: 100vh;
+  height: 100%;
   padding: 1rem;
+  overflow: hidden;
 }
 
 .app--loading {
@@ -13,8 +14,7 @@
 .app--main {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
+  height: 100%;
   padding: 0;
   max-width: 480px;
   margin: 0 auto;
