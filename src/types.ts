@@ -27,6 +27,7 @@ export interface Place {
   id: string
   household_id: string
   type: string
+  icon: string
   label: string
   parent_place_id: string | null
   attributes: Record<string, string>

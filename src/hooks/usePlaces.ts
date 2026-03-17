@@ -54,8 +54,8 @@ export function usePlaces(householdId: string | null) {
 
   const createPlace = useCallback(
     async (data: {
-      type: string
       label: string
+      icon?: string
       parent_place_id?: string | null
       attributes?: Record<string, string>
       canonical_key?: string | null
@@ -65,7 +65,8 @@ export function usePlaces(householdId: string | null) {
         .from('places')
         .insert({
           household_id: householdId,
-          type: data.type,
+          type: 'place',
+          icon: data.icon ?? 'map-pin',
           label: data.label,
           parent_place_id: data.parent_place_id ?? null,
           attributes: data.attributes ?? {},
@@ -82,7 +83,7 @@ export function usePlaces(householdId: string | null) {
   const updatePlace = useCallback(
     async (
       id: string,
-      changes: Partial<{ label: string; type: string; attributes: Record<string, string> }>
+      changes: Partial<{ label: string; icon: string; attributes: Record<string, string> }>
     ) => {
       if (!householdId) return { error: new Error('No household') }
       const { error } = await supabase

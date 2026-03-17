@@ -118,7 +118,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 14px 12px;
+  padding: 10px 12px;
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -128,8 +128,8 @@
 }
 
 .locations-view__expand {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -146,10 +146,14 @@
 }
 
 .locations-view__type-icon {
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: rgba(201, 169, 98, 0.08);
+  border-radius: 6px;
 }
 
 .locations-view__info {
@@ -162,13 +166,18 @@
 
 .locations-view__info-text {
   min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
 }
 
 .locations-view__label {
   font-size: var(--font-size-body);
   font-weight: 600;
   color: var(--text-primary);
-  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .locations-view__label--link {
@@ -189,6 +198,8 @@
 .locations-view__meta {
   font-size: var(--font-size-sm);
   color: var(--text-tertiary);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Single overflow menu button */

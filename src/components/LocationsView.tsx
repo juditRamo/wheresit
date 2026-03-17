@@ -1,30 +1,17 @@
 import { useState } from 'react'
-import { ChevronRight, MoreHorizontal, Plus, ToolCase, Inbox, DoorOpen, DoorClosed, LibraryBig, Folder, MapPin } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+import { ChevronRight, MoreHorizontal, Plus } from 'lucide-react'
 import { usePlaces, type PlaceWithChildren } from '../hooks/usePlaces'
 import { useStorageEntries } from '../hooks/useStorageEntries'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
 import { recordHistoryEvent } from '../lib/historyEvents'
+import { getPlaceIcon } from '../lib/placeIcons'
 import type { LocationRef } from '../types'
 import { PlaceDrillDown } from './PlaceDrillDown'
 import { PlaceEditSheet } from './PlaceEditSheet'
+import { PlaceIconPicker } from './PlaceIconPicker'
 import { LocationActionSheet } from './LocationActionSheet'
 import './LocationsView.css'
-
-const PLACE_TYPE_ICONS: Record<string, LucideIcon> = {
-  room: DoorOpen,
-  furniture: DoorClosed,
-  shelf: LibraryBig,
-  drawer: Inbox,
-  box: ToolCase,
-  folder: Folder,
-}
-
-function getPlaceTypeIcon(type: string): LucideIcon {
-  const icon = PLACE_TYPE_ICONS[type.toLowerCase()]
-  return icon ?? MapPin
-}
 
 interface LocationsViewProps {
   householdId: string
@@ -46,9 +33,9 @@ function PlaceNode({
   onMove,
   onNavigateToItems,
   addingUnderId,
-  newType,
+  newIcon,
   newLabel,
-  setNewType,
+  setNewIcon,
   setNewLabel,
   onAddChild,
   onCancelAddChild,
@@ -68,9 +55,9 @@ function PlaceNode({
   onMove: (p: PlaceWithChildren, newParentId: string | null) => void
   onNavigateToItems?: (filter: LocationRef) => void
   addingUnderId: string | null
-  newType: string
+  newIcon: string
   newLabel: string
-  setNewType: (t: string) => void
+  setNewIcon: (i: string) => void
   setNewLabel: (l: string) => void
   onAddChild: (p: PlaceWithChildren) => void
   onCancelAddChild: () => void
@@ -82,7 +69,7 @@ function PlaceNode({
   const [showActions, setShowActions] = useState(false)
   const count = itemCount(place.id) + place.children.reduce((s, c) => s + itemCount(c.id), 0)
   const excludeIds = new Set([place.id, ...getDescendantIds(place.id)])
-  const TypeIcon = getPlaceTypeIcon(place.type)
+  const TypeIcon = getPlaceIcon(place.icon)
   const showChildForm = addingUnderId === place.id
 
   return (
@@ -117,8 +104,7 @@ function PlaceNode({
               <span className="locations-view__label">{place.label}</span>
             )}
             <span className="locations-view__meta">
-            {place.type}
-            {count > 0 && <> · {count} items</>}
+              {count > 0 && <>{count === 1 ? ui('inventory.item_one', language) : ui('inventory.item_other', language, { n: count })}</>}
             </span>
           </div>
         </div>
@@ -147,26 +133,19 @@ function PlaceNode({
       )}
       {showChildForm && (
         <div className="locations-view__form locations-view__form--inline">
-          <select value={newType} onChange={(e) => setNewType(e.target.value)} className="locations-view__select">
-            <option value="room">Room</option>
-            <option value="furniture">Furniture</option>
-            <option value="shelf">Shelf</option>
-            <option value="drawer">Drawer</option>
-            <option value="box">Box</option>
-            <option value="folder">Folder</option>
-          </select>
+          <PlaceIconPicker selected={newIcon} onSelect={setNewIcon} compact />
           <input
             className="locations-view__input"
-            placeholder="Label"
+            placeholder={ui('locations.name_placeholder', language)}
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && onAddChildSubmit(place.id)}
           />
           <button className="locations-view__submit" onClick={() => onAddChildSubmit(place.id)}>
-            Add
+            {ui('edit.save', language)}
           </button>
           <button className="locations-view__cancel" onClick={onCancelAddChild}>
-            Cancel
+            {ui('edit.cancel', language)}
           </button>
         </div>
       )}
@@ -204,9 +183,9 @@ function PlaceNode({
               onMove={onMove}
               onNavigateToItems={onNavigateToItems}
               addingUnderId={addingUnderId}
-              newType={newType}
+              newIcon={newIcon}
               newLabel={newLabel}
-              setNewType={setNewType}
+              setNewIcon={setNewIcon}
               setNewLabel={setNewLabel}
               onAddChild={onAddChild}
               onCancelAddChild={onCancelAddChild}
@@ -237,7 +216,7 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
   const { language } = useLanguage()
   const [adding, setAdding] = useState(false)
   const [addingUnderId, setAddingUnderId] = useState<string | null>(null)
-  const [newType, setNewType] = useState('room')
+  const [newIcon, setNewIcon] = useState('map-pin')
   const [newLabel, setNewLabel] = useState('')
   const [editing, setEditing] = useState<PlaceWithChildren | null>(null)
 
@@ -248,11 +227,11 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
   async function handleAdd() {
     const label = newLabel.trim()
     if (!label) return
-    const { data: created, error } = await createPlace({ type: newType, label })
+    const { data: created, error } = await createPlace({ icon: newIcon, label })
     if (!error && created) {
       recordHistoryEvent(householdId, 'add_place', 'place', created.id, {
         label: created.label,
-        type: created.type,
+        icon: created.icon,
         canonical_key: created.canonical_key ?? undefined,
       })
       setNewLabel('')
@@ -263,7 +242,7 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
 
   function startAddChild(place: PlaceWithChildren) {
     setAddingUnderId(place.id)
-    setNewType('room')
+    setNewIcon('map-pin')
     setNewLabel('')
   }
 
@@ -274,11 +253,11 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
   async function handleAddChild(parentId: string) {
     const label = newLabel.trim()
     if (!label) return
-    const { data: created, error } = await createPlace({ type: newType, label, parent_place_id: parentId })
+    const { data: created, error } = await createPlace({ icon: newIcon, label, parent_place_id: parentId })
     if (!error && created) {
       recordHistoryEvent(householdId, 'add_place', 'place', created.id, {
         label: created.label,
-        type: created.type,
+        icon: created.icon,
         parent_place_id: parentId,
         canonical_key: created.canonical_key ?? undefined,
       })
@@ -288,13 +267,13 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
     }
   }
 
-  async function handleSaveEdit(data: { label: string; type: string; attributes: Record<string, string> }) {
+  async function handleSaveEdit(data: { label: string; icon: string; attributes: Record<string, string> }) {
     if (!editing) return
-    const err = await updatePlace(editing.id, { label: data.label, type: data.type, attributes: data.attributes })
+    const err = await updatePlace(editing.id, { label: data.label, icon: data.icon, attributes: data.attributes })
     if (!err?.error) {
       recordHistoryEvent(householdId, 'edit_place', 'place', editing.id, {
         label: data.label,
-        changes: { label: data.label, type: data.type, attributes: data.attributes },
+        changes: { label: data.label, icon: data.icon, attributes: data.attributes },
       })
     }
     setEditing(null)
@@ -327,7 +306,7 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
   async function handleDuplicate(p: PlaceWithChildren) {
     const label = p.label.trim() ? `${p.label} (copy)` : '(copy)'
     const { data: created, error } = await createPlace({
-      type: p.type,
+      icon: p.icon,
       label,
       parent_place_id: p.parent_place_id ?? null,
       attributes: p.attributes ?? {},
@@ -335,7 +314,7 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
     if (!error && created) {
       recordHistoryEvent(householdId, 'add_place', 'place', created.id, {
         label: created.label,
-        type: created.type,
+        icon: created.icon,
         canonical_key: created.canonical_key ?? undefined,
         duplicated_from_place_id: p.id,
       })
@@ -354,26 +333,19 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
       </div>
       {adding && !addingUnderId && (
         <div className="locations-view__form">
-          <select value={newType} onChange={(e) => setNewType(e.target.value)} className="locations-view__select">
-            <option value="room">Room</option>
-            <option value="furniture">Furniture</option>
-            <option value="shelf">Shelf</option>
-            <option value="drawer">Drawer</option>
-            <option value="box">Box</option>
-            <option value="folder">Folder</option>
-          </select>
+          <PlaceIconPicker selected={newIcon} onSelect={setNewIcon} compact />
           <input
             className="locations-view__input"
-            placeholder="Label"
+            placeholder={ui('locations.name_placeholder', language)}
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
           />
           <button className="locations-view__submit" onClick={handleAdd}>
-            Add
+            {ui('edit.save', language)}
           </button>
           <button className="locations-view__cancel" onClick={() => setAdding(false)}>
-            Cancel
+            {ui('edit.cancel', language)}
           </button>
         </div>
       )}
@@ -408,9 +380,9 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
                 onMove={handleMove}
                 onNavigateToItems={onNavigateToItems}
                 addingUnderId={addingUnderId}
-                newType={newType}
+                newIcon={newIcon}
                 newLabel={newLabel}
-                setNewType={setNewType}
+                setNewIcon={setNewIcon}
                 setNewLabel={setNewLabel}
                 onAddChild={startAddChild}
                 onCancelAddChild={cancelAddChild}

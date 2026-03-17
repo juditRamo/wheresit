@@ -182,6 +182,14 @@ const strings: Record<string, { en: string; es: string }> = {
   'locations.duplicate': { en: 'Duplicate place', es: 'Duplicar lugar' },
   'locations.delete': { en: 'Delete', es: 'Eliminar' },
 
+  'locations.icon': { en: 'Icon', es: 'Icono' },
+  'locations.choose_icon': { en: 'Choose icon', es: 'Elegir icono' },
+  'locations.name_placeholder': { en: 'Name', es: 'Nombre' },
+  'icons.rooms': { en: 'Rooms', es: 'Habitaciones' },
+  'icons.furniture': { en: 'Furniture', es: 'Muebles' },
+  'icons.containers': { en: 'Containers', es: 'Contenedores' },
+  'icons.misc': { en: 'Other', es: 'Otros' },
+
   // Place drill-down picker
   'places.move_here': { en: 'Move here', es: 'Mover aquí' },
   'places.use_this_place': { en: 'Use this place', es: 'Usar este lugar' },

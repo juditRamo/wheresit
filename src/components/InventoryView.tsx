@@ -4,25 +4,21 @@ import {
   RefreshCw,
   Plus,
   X,
-  BedDouble,
   BookOpen,
   Watch,
   Key,
   Headphones,
   Package,
   Home,
-  Utensils,
-  Bath,
-  Sofa,
-  Car,
 } from 'lucide-react'
 import { useStorageEntries } from '../hooks/useStorageEntries'
 import { usePlaces } from '../hooks/usePlaces'
 import { useLanguage } from '../i18n/LanguageContext'
 import { t, CATEGORIES } from '../i18n/picklists'
 import { ui } from '../i18n/ui'
+import { getPlaceIcon } from '../lib/placeIcons'
 import { recordHistoryEvent } from '../lib/historyEvents'
-import type { StorageEntry, LocationRef } from '../types'
+import type { StorageEntry, Place, LocationRef } from '../types'
 import { ItemEditSheet } from './ItemEditSheet'
 import { DashboardCards } from './DashboardCards'
 import { ActivityFeed } from './ActivityFeed'
@@ -35,18 +31,6 @@ interface InventoryViewProps {
 }
 
 type SortTab = 'room' | 'category' | 'recent' | 'activity'
-
-const ROOM_ICONS: Record<string, typeof Home> = {
-  bedroom: BedDouble,
-  master_bedroom: BedDouble,
-  kids_room: BedDouble,
-  guest_room: BedDouble,
-  kitchen: Utensils,
-  bathroom: Bath,
-  living_room: Sofa,
-  dining_room: Utensils,
-  garage: Car,
-}
 
 const ITEM_ICONS: Record<string, typeof Package> = {
   passport: BookOpen,
@@ -68,13 +52,9 @@ function getItemIcon(itemName: string) {
   return Package
 }
 
-function getRoomIcon(roomKey: string) {
-  const Icon = ROOM_ICONS[roomKey]
-  if (Icon) return Icon
-  const lower = roomKey.toLowerCase()
-  for (const [keyword, Ic] of Object.entries(ROOM_ICONS)) {
-    if (lower.includes(keyword)) return Ic
-  }
+function getRoomIcon(rootPlaceId: string, places: Place[]) {
+  const place = places.find(p => p.id === rootPlaceId)
+  if (place?.icon) return getPlaceIcon(place.icon)
   return Home
 }
 
@@ -419,7 +399,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
         /* Items List */
         <div className="inventory__list">
           {sections.map((section) => {
-            const RoomIcon = getRoomIcon(section.label)
+            const RoomIcon = getRoomIcon(section.key, places)
             return (
               <div key={section.key} className="inventory__section">
                 {(activeTab === 'room' || activeTab === 'category') && (

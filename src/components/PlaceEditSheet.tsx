@@ -3,18 +3,19 @@ import { X, Save } from 'lucide-react'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
 import type { PlaceWithChildren } from '../hooks/usePlaces'
+import { PlaceIconPicker } from './PlaceIconPicker'
 import './ItemEditSheet.css'
 
 interface PlaceEditSheetProps {
   place: PlaceWithChildren
-  onSave: (data: { label: string; type: string; attributes: Record<string, string> }) => void
+  onSave: (data: { label: string; icon: string; attributes: Record<string, string> }) => void
   onClose: () => void
 }
 
 export function PlaceEditSheet({ place, onSave, onClose }: PlaceEditSheetProps) {
   const { language } = useLanguage()
   const [label, setLabel] = useState(place.label)
-  const [type, setType] = useState(place.type)
+  const [icon, setIcon] = useState(place.icon)
   const [attributesText, setAttributesText] = useState(
     Object.entries(place.attributes ?? {}).map(([k, v]) => `${k}: ${v}`).join(', ')
   )
@@ -25,7 +26,7 @@ export function PlaceEditSheet({ place, onSave, onClose }: PlaceEditSheetProps) 
       const [k, v] = part.split(':').map((s) => s.trim())
       if (k && v) attrs[k] = v
     }
-    onSave({ label: label.trim(), type, attributes: attrs })
+    onSave({ label: label.trim(), icon, attributes: attrs })
   }
 
   return (
@@ -54,15 +55,8 @@ export function PlaceEditSheet({ place, onSave, onClose }: PlaceEditSheetProps) 
           </div>
 
           <div className="edit-sheet__field">
-            <label className="edit-sheet__label">Type</label>
-            <select className="edit-sheet__select" value={type} onChange={(e) => setType(e.target.value)}>
-              <option value="room">Room</option>
-              <option value="furniture">Furniture</option>
-              <option value="shelf">Shelf</option>
-              <option value="drawer">Drawer</option>
-              <option value="box">Box</option>
-              <option value="folder">Folder</option>
-            </select>
+            <label className="edit-sheet__label">{ui('locations.icon', language)}</label>
+            <PlaceIconPicker selected={icon} onSelect={setIcon} />
           </div>
 
           <div className="edit-sheet__field">
