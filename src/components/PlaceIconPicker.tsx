@@ -66,7 +66,7 @@ export function PlaceIconPicker({ selected, onSelect, compact }: PlaceIconPicker
           onClick={() => setOpen(!open)}
           aria-label={ui('locations.choose_icon', language)}
         >
-          <SelectedIcon size={20} color="var(--gold-primary)" />
+          <SelectedIcon size={20} />
         </button>
         {open && <div className="icon-picker__popover">{grid}</div>}
       </div>
