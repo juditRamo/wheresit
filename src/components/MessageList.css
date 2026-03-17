@@ -11,7 +11,7 @@
   justify-content: center;
   align-items: center;
   text-align: center;
-  padding: 32px;
+  padding: 24px;
 }
 
 .message-list__empty-avatar {
@@ -35,7 +35,7 @@
 }
 
 .message-list__empty-hint {
-  font-size: 13px;
+  font-size: var(--font-size-body);
   color: var(--text-secondary);
   margin: 0;
 }
@@ -92,7 +92,7 @@
 }
 
 .message__text {
-  font-size: 13px;
+  font-size: var(--font-size-body);
 }
 
 .message--user .message__text {
@@ -127,7 +127,7 @@
 }
 
 .message__time {
-  font-size: 9px;
+  font-size: var(--font-size-xs);
   color: var(--text-tertiary);
 }
 
@@ -167,7 +167,8 @@
   white-space: nowrap;
 }
 
-.location-card__chip:hover {
+.location-card__chip:hover,
+.location-card__chip:active {
   background: rgba(201, 169, 98, 0.25);
 }
 
@@ -181,7 +182,7 @@
   align-items: center;
   gap: 2px;
   margin-left: auto;
-  font-size: 9px;
+  font-size: var(--font-size-xs);
   color: var(--text-tertiary);
   white-space: nowrap;
 }
@@ -226,7 +227,8 @@
   white-space: nowrap;
 }
 
-.tag-save-card__chip:hover:not(:disabled) {
+.tag-save-card__chip:hover:not(:disabled),
+.tag-save-card__chip:active:not(:disabled) {
   background: rgba(201, 169, 98, 0.25);
 }
 
@@ -263,7 +265,8 @@
   transition: background 0.15s;
 }
 
-.multi-result-card__item:hover {
+.multi-result-card__item:hover,
+.multi-result-card__item:active {
   background: rgba(201, 169, 98, 0.08);
 }
 
@@ -302,11 +305,11 @@
 
 .confirm-card__btn {
   flex: 1;
-  height: 32px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   border-radius: 8px;
   transition: opacity 0.15s;

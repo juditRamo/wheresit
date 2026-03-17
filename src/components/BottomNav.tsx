@@ -1,16 +1,17 @@
-import { MessageSquare, Archive, MapPin, Search } from 'lucide-react'
+import { MessageSquare, Archive, MapPin, Settings } from 'lucide-react'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
 import './BottomNav.css'
 
-export type NavTab = 'chat' | 'items' | 'locations' | 'search'
+export type NavTab = 'chat' | 'items' | 'locations'
 
 interface BottomNavProps {
   active: NavTab
   onNavigate: (tab: NavTab) => void
+  onSettingsClick: () => void
 }
 
-export function BottomNav({ active, onNavigate }: BottomNavProps) {
+export function BottomNav({ active, onNavigate, onSettingsClick }: BottomNavProps) {
   const { language } = useLanguage()
 
   return (
@@ -30,18 +31,18 @@ export function BottomNav({ active, onNavigate }: BottomNavProps) {
         <span className="bottom-nav__label">{ui('nav.locations', language)}</span>
       </button>
       <button
-        className={`bottom-nav__item ${active === 'search' ? 'bottom-nav__item--active' : ''}`}
-        onClick={() => onNavigate('search')}
-      >
-        <Search size={20} />
-        <span className="bottom-nav__label">{ui('nav.search', language)}</span>
-      </button>
-      <button
         className={`bottom-nav__item ${active === 'chat' ? 'bottom-nav__item--active' : ''}`}
         onClick={() => onNavigate('chat')}
       >
         <MessageSquare size={20} />
         <span className="bottom-nav__label">{ui('nav.chat', language)}</span>
+      </button>
+      <button
+        className="bottom-nav__item"
+        onClick={onSettingsClick}
+      >
+        <Settings size={20} />
+        <span className="bottom-nav__label">{ui('settings.title', language)}</span>
       </button>
     </nav>
   )

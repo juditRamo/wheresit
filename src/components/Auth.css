@@ -51,12 +51,12 @@
 
 .auth-password-toggle {
   position: absolute;
-  right: 0.5rem;
+  right: 0.25rem;
   top: 50%;
   transform: translateY(-50%);
-  padding: 0.35rem;
-  min-width: 2rem;
-  min-height: 2rem;
+  padding: 0.5rem;
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -67,7 +67,8 @@
   border-radius: 6px;
 }
 
-.auth-password-toggle:hover {
+.auth-password-toggle:hover,
+.auth-password-toggle:active {
   color: inherit;
   background: rgba(0, 0, 0, 0.05);
 }
@@ -106,6 +107,7 @@
   padding: 0.5rem;
 }
 
-.auth-toggle:hover {
+.auth-toggle:hover,
+.auth-toggle:active {
   text-decoration: underline;
 }

@@ -42,7 +42,7 @@
 }
 
 .dashboard__card-label {
-  font-size: 10px;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;

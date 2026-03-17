@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronRight, Copy, Plus, Pencil, Trash2, MapPinPen, ToolCase, Inbox, DoorOpen, DoorClosed, LibraryBig, Folder, MapPin } from 'lucide-react'
+import { ChevronRight, MoreHorizontal, Plus, ToolCase, Inbox, DoorOpen, DoorClosed, LibraryBig, Folder, MapPin } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { usePlaces, type PlaceWithChildren } from '../hooks/usePlaces'
 import { useStorageEntries } from '../hooks/useStorageEntries'
@@ -9,6 +9,7 @@ import { recordHistoryEvent } from '../lib/historyEvents'
 import type { LocationRef } from '../types'
 import { PlaceDrillDown } from './PlaceDrillDown'
 import { PlaceEditSheet } from './PlaceEditSheet'
+import { LocationActionSheet } from './LocationActionSheet'
 import './LocationsView.css'
 
 const PLACE_TYPE_ICONS: Record<string, LucideIcon> = {
@@ -78,24 +79,24 @@ function PlaceNode({
   const { language } = useLanguage()
   const [collapsed, setCollapsed] = useState(false)
   const [showMove, setShowMove] = useState(false)
+  const [showActions, setShowActions] = useState(false)
   const count = itemCount(place.id) + place.children.reduce((s, c) => s + itemCount(c.id), 0)
   const excludeIds = new Set([place.id, ...getDescendantIds(place.id)])
   const TypeIcon = getPlaceTypeIcon(place.type)
   const showChildForm = addingUnderId === place.id
 
   return (
-    <div className="locations-view__node" style={{ paddingLeft: depth * 16 }}>
-      <div className="locations-view__row">
-        <button
-          className="locations-view__expand"
-          onClick={() => setCollapsed(!collapsed)}
-          aria-label={collapsed ? 'Expand' : 'Collapse'}
-        >
+    <div className="locations-view__node" style={{ paddingLeft: Math.min(depth * 16, 48) }}>
+      <div
+        className="locations-view__row"
+        onClick={() => setCollapsed(!collapsed)}
+      >
+        <span className="locations-view__expand" aria-label={collapsed ? 'Expand' : 'Collapse'}>
           <ChevronRight
             size={14}
             className={`locations-view__chevron ${!collapsed ? 'locations-view__chevron--open' : ''}`}
           />
-        </button>
+        </span>
         <div className="locations-view__info">
           <span className="locations-view__type-icon">
             <TypeIcon size={16} color="var(--gold-primary)" />
@@ -105,7 +106,10 @@ function PlaceNode({
               <button
                 type="button"
                 className="locations-view__label locations-view__label--link"
-                onClick={() => onNavigateToItems({ place_id: place.id, place_label: place.label })}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onNavigateToItems({ place_id: place.id, place_label: place.label })
+                }}
               >
                 {place.label}
               </button>
@@ -114,39 +118,33 @@ function PlaceNode({
             )}
             <span className="locations-view__meta">
             {place.type}
-            {Object.keys(place.attributes ?? {}).length > 0 && (
-              <> · {Object.entries(place.attributes ?? {}).map(([k, v]) => `${k}: ${v}`).join(', ')}</>
-            )}
             {count > 0 && <> · {count} items</>}
             </span>
           </div>
         </div>
-        <div className="locations-view__actions">
-          <button
-            className="locations-view__action"
-            onClick={() => onAddChild(place)}
-            title={ui('locations.add_child', language)}
-          >
-            <Plus size={12} />
-          </button>
-          <button
-            className="locations-view__action"
-            onClick={() => setShowMove(!showMove)}
-            title={ui('locations.move_to', language)}
-          >
-            <MapPinPen size={14} />
-          </button>
-          <button className="locations-view__action" onClick={() => onEdit(place)} title={ui('locations.edit', language)}>
-            <Pencil size={12} />
-          </button>
-          <button className="locations-view__action" onClick={() => onDuplicate(place)} title={ui('locations.duplicate', language)}>
-            <Copy size={12} />
-          </button>
-          <button className="locations-view__action locations-view__action--danger" onClick={() => onDelete(place)} title={ui('locations.delete', language)}>
-            <Trash2 size={12} />
-          </button>
-        </div>
+        <button
+          className="locations-view__more-btn"
+          onClick={(e) => {
+            e.stopPropagation()
+            setShowActions(true)
+          }}
+          aria-label="Actions"
+        >
+          <MoreHorizontal size={18} />
+        </button>
       </div>
+
+      {showActions && (
+        <LocationActionSheet
+          place={place}
+          onAddChild={() => { setShowActions(false); onAddChild(place) }}
+          onEdit={() => { setShowActions(false); onEdit(place) }}
+          onDuplicate={() => { setShowActions(false); onDuplicate(place) }}
+          onMove={() => { setShowActions(false); setShowMove(true) }}
+          onDelete={() => { setShowActions(false); onDelete(place) }}
+          onClose={() => setShowActions(false)}
+        />
+      )}
       {showChildForm && (
         <div className="locations-view__form locations-view__form--inline">
           <select value={newType} onChange={(e) => setNewType(e.target.value)} className="locations-view__select">

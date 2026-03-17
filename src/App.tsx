@@ -14,7 +14,6 @@ import { BottomNav, type NavTab } from './components/BottomNav'
 import { Chat } from './components/Chat'
 import { InventoryView } from './components/InventoryView'
 import { LocationsView } from './components/LocationsView'
-import { SearchView } from './components/SearchView'
 import { SettingsPanel } from './components/SettingsPanel'
 import type { LocationRef } from './types'
 import './App.css'
@@ -39,8 +38,6 @@ function AppInner() {
   const [activeTab, setActiveTab] = useState<NavTab>('items')
   const [itemsFilter, setItemsFilter] = useState<LocationRef | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [addItemTrigger, setAddItemTrigger] = useState(0)
-  const handleAddItemClick = useCallback(() => { setAddItemTrigger((t) => t + 1); setActiveTab('items'); }, [])
 
   // Sync theme/language from profile when profile loads (once per user)
   useEffect(() => {
@@ -113,22 +110,19 @@ function AppInner() {
     <div className="app app--main">
       <Sidebar active={activeTab} onNavigate={handleTabNavigate} onSettingsClick={() => setSettingsOpen(true)} />
       <div className="app__body">
-        <Header onMenuClick={() => setSettingsOpen(true)} onAddClick={handleAddItemClick} />
+        <Header onMenuClick={() => setSettingsOpen(true)} />
         <main className="app__content">
           {activeTab === 'chat' && selectedId && (
             <Chat householdId={selectedId} onNavigateToItems={handleNavigateToItems} />
           )}
           {activeTab === 'items' && selectedId && (
-            <InventoryView householdId={selectedId} filter={itemsFilter} onClearFilter={() => setItemsFilter(null)} addItemTrigger={addItemTrigger} />
+            <InventoryView householdId={selectedId} filter={itemsFilter} onClearFilter={() => setItemsFilter(null)} />
           )}
           {activeTab === 'locations' && selectedId && (
             <LocationsView householdId={selectedId} onNavigateToItems={handleNavigateToItems} />
           )}
-          {activeTab === 'search' && selectedId && (
-            <SearchView householdId={selectedId} onNavigateToItems={handleNavigateToItems} />
-          )}
         </main>
-        <BottomNav active={activeTab} onNavigate={handleTabNavigate} />
+        <BottomNav active={activeTab} onNavigate={handleTabNavigate} onSettingsClick={() => setSettingsOpen(true)} />
       </div>
 
       {settingsOpen && selectedHousehold && selectedId && (

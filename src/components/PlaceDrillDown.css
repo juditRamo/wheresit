@@ -14,17 +14,19 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;
-  font-size: 12px;
+  padding: 10px 14px;
+  min-height: 44px;
+  font-size: var(--font-size-sm);
   background: rgba(201, 169, 98, 0.1);
   border: 1px solid var(--gold-border, rgba(201, 169, 98, 0.4));
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--gold-primary, #c9a962);
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.place-drill-down__opt:hover {
+.place-drill-down__opt:hover,
+.place-drill-down__opt:active {
   background: rgba(201, 169, 98, 0.2);
 }
 
@@ -34,7 +36,8 @@
   background: var(--bg-card);
 }
 
-.place-drill-down__opt--back:hover {
+.place-drill-down__opt--back:hover,
+.place-drill-down__opt--back:active {
   background: var(--border-dark);
 }
 

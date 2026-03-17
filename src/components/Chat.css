@@ -69,7 +69,7 @@
   background: var(--bg-input);
   border: 1px solid var(--border-dark);
   border-radius: 22px;
-  font-size: 13px;
+  font-size: var(--font-size-body);
   color: var(--text-primary);
 }
 
@@ -106,13 +106,17 @@
 }
 
 .chat__suggestion {
-  padding: 8px 14px;
-  font-size: 13px;
+  padding: 10px 14px;
+  font-size: var(--font-size-body);
   color: var(--text-primary);
   cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
 }
 
-.chat__suggestion:hover {
+.chat__suggestion:hover,
+.chat__suggestion:active {
   background: var(--border-dark);
 }
 

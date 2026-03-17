@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   Search,
   RefreshCw,
   Plus,
   X,
-  Trash2,
   BedDouble,
   BookOpen,
   Watch,
@@ -33,7 +32,6 @@ interface InventoryViewProps {
   householdId: string
   filter?: LocationRef | null
   onClearFilter: () => void
-  addItemTrigger?: number
 }
 
 type SortTab = 'room' | 'category' | 'recent' | 'activity'
@@ -104,6 +102,17 @@ function getRootPlaceId(placeId: string | null, places: Array<{ id: string; pare
   return null
 }
 
+function getRootPlaceLabel(entry: StorageEntry, places: Array<{ id: string; label: string; parent_place_id: string | null }>): string | null {
+  if (entry.place_id) {
+    const rootId = getRootPlaceId(entry.place_id, places)
+    const byId = new Map(places.map((p) => [p.id, p]))
+    const root = rootId ? byId.get(rootId) : null
+    return root?.label ?? null
+  }
+  const first = entry.location_description?.split(' › ')[0]
+  return first ?? null
+}
+
 function groupByPlace(entries: StorageEntry[], places: Array<{ id: string; label: string; parent_place_id: string | null }>): Record<string, { key: string; label: string; entries: StorageEntry[] }> {
   const groups: Record<string, { key: string; label: string; entries: StorageEntry[] }> = {}
   const byId = new Map(places.map((p) => [p.id, p]))
@@ -136,7 +145,7 @@ function groupByCategory(entries: StorageEntry[], lang: 'en' | 'es'): Record<str
   return groups
 }
 
-export function InventoryView({ householdId, filter, onClearFilter, addItemTrigger }: InventoryViewProps) {
+export function InventoryView({ householdId, filter, onClearFilter }: InventoryViewProps) {
   const { entries, loading, refetch, updateEntry, deleteEntry, createEntry, stats } = useStorageEntries(householdId)
   const { getDescendantIds, getPlaceById, getPlacePath, places } = usePlaces(householdId)
   const { language } = useLanguage()
@@ -144,12 +153,9 @@ export function InventoryView({ householdId, filter, onClearFilter, addItemTrigg
   const [searchQuery, setSearchQuery] = useState('')
   const [editingEntry, setEditingEntry] = useState<StorageEntry | null>(null)
   const [showAddSheet, setShowAddSheet] = useState(false)
+  const [placeChipFilter, setPlaceChipFilter] = useState<string | null>(null)
+  const [categoryChipFilter, setCategoryChipFilter] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (addItemTrigger != null && addItemTrigger > 0) {
-      setShowAddSheet(true)
-    }
-  }, [addItemTrigger])
 
   // Apply location filter if set
   let filtered = filter
@@ -177,6 +183,18 @@ export function InventoryView({ householdId, filter, onClearFilter, addItemTrigg
         getLocationDisplay(e, getPlacePath).toLowerCase().includes(q)
     )
   }
+
+  // Apply chip filters
+  if (placeChipFilter) {
+    filtered = filtered.filter((e) => getRootPlaceLabel(e, places) === placeChipFilter)
+  }
+  if (categoryChipFilter) {
+    filtered = filtered.filter((e) => e.category_key === categoryChipFilter)
+  }
+
+  // Compute chip options from all entries (before chip filtering)
+  const placeChipKeys = [...new Set(entries.map((e) => getRootPlaceLabel(e, places)).filter(Boolean))] as string[]
+  const categoryChipKeys = [...new Set(entries.map((e) => e.category_key).filter(Boolean))] as string[]
 
   const itemCount = (n: number) =>
     n === 1 ? ui('inventory.item_one', language) : ui('inventory.item_other', language, { n })
@@ -268,26 +286,26 @@ export function InventoryView({ householdId, filter, onClearFilter, addItemTrigg
 
   return (
     <div className="inventory">
-      {/* Header */}
+      {/* Header — compact with inline count */}
       <div className="inventory__header">
         <div className="inventory__header-left">
-          <h1 className="inventory__title">{ui('inventory.title', language)}</h1>
-          <span className="inventory__subtitle">
-            {entries.length === 1
-              ? ui('inventory.subtitle_one', language)
-              : ui('inventory.subtitle_other', language, { n: entries.length })}
-          </span>
+          <h1 className="inventory__title">
+            {ui('inventory.title', language)}
+            {entries.length > 0 && (
+              <span className="inventory__subtitle"> ({entries.length})</span>
+            )}
+          </h1>
         </div>
         <div className="inventory__header-right">
           <button className="inventory__icon-btn" onClick={refetch} aria-label="Sync">
-            <RefreshCw size={14} className={loading ? 'inventory__spin' : ''} />
+            <RefreshCw size={16} className={loading ? 'inventory__spin' : ''} />
           </button>
           <button
             className="inventory__icon-btn inventory__icon-btn--gold"
             aria-label="Add item"
             onClick={() => setShowAddSheet(true)}
           >
-            <Plus size={14} color="var(--text-on-gold)" />
+            <Plus size={16} color="var(--text-on-gold)" />
           </button>
         </div>
       </div>
@@ -357,6 +375,43 @@ export function InventoryView({ householdId, filter, onClearFilter, addItemTrigg
         </button>
       </div>
 
+      {/* Filter chips */}
+      {(placeChipKeys.length > 0 || categoryChipKeys.length > 0) && activeTab !== 'activity' && (
+        <div className="inventory__chips">
+          {placeChipKeys.length > 0 && (
+            <>
+              <span className="inventory__chip-label">{ui('search.filter_room', language)}</span>
+              {placeChipKeys.map((key) => (
+                <button
+                  key={key}
+                  className={`inventory__chip ${placeChipFilter === key ? 'inventory__chip--active' : ''}`}
+                  onClick={() => setPlaceChipFilter(placeChipFilter === key ? null : key)}
+                >
+                  {key}
+                </button>
+              ))}
+            </>
+          )}
+          {placeChipKeys.length > 0 && categoryChipKeys.length > 0 && (
+            <div className="inventory__chip-divider" />
+          )}
+          {categoryChipKeys.length > 0 && (
+            <>
+              <span className="inventory__chip-label">{ui('search.filter_category', language)}</span>
+              {categoryChipKeys.map((key) => (
+                <button
+                  key={key}
+                  className={`inventory__chip ${categoryChipFilter === key ? 'inventory__chip--active' : ''}`}
+                  onClick={() => setCategoryChipFilter(categoryChipFilter === key ? null : key)}
+                >
+                  {t(CATEGORIES, key, language)}
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+
       {/* Activity Feed tab */}
       {activeTab === 'activity' ? (
         <ActivityFeed householdId={householdId} />
@@ -405,17 +460,6 @@ export function InventoryView({ householdId, filter, onClearFilter, addItemTrigg
                           {t(CATEGORIES, entry.category_key, language)}
                         </span>
                       )}
-                      <button
-                        className="inventory__item-delete"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setEditingEntry(entry)
-                          // Will trigger delete confirm in edit sheet
-                        }}
-                        aria-label="Delete"
-                      >
-                        <Trash2 size={14} />
-                      </button>
                     </div>
                   )
                 })}

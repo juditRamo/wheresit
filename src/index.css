@@ -35,6 +35,13 @@
   --font-display: 'Cormorant Garamond', Georgia, serif;
   --font-body: 'Inter', system-ui, sans-serif;
 
+  /* Font scale */
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-body: 15px;
+  --font-size-lg: 17px;
+  --font-size-xl: 22px;
+
   font-family: var(--font-body);
   line-height: 1.5;
   font-weight: 400;
@@ -176,4 +183,17 @@ input {
 
 input:focus {
   outline: none;
+}
+
+/* Touch device reset */
+@media (hover: none) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Global active states for touch feedback */
+button:active {
+  transform: scale(0.97);
+  transition: transform 0.1s;
 }
