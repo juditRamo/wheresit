@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Mic, Send } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
+import { SpeechRecognition as NativeSpeechRecognition } from '@capacitor-community/speech-recognition'
 import { MessageList } from './MessageList'
 import { sendChatMessage } from '../api/chat'
 import { useStoredItems } from '../hooks/useStoredItems'
@@ -175,6 +177,11 @@ export function Chat({ householdId, onNavigateToItems }: ChatProps) {
 
   // Voice input
   function handleMicClick() {
+    if (Capacitor.isNativePlatform()) {
+      handleNativeMic()
+      return
+    }
+
     const SpeechRecognition = getSpeechRecognition()
     if (!SpeechRecognition) {
       setError(ui('voice.not_supported', language))
@@ -207,6 +214,40 @@ export function Chat({ householdId, onNavigateToItems }: ChatProps) {
 
     setIsRecording(true)
     recognition.start()
+  }
+
+  async function handleNativeMic() {
+    if (isRecording) {
+      NativeSpeechRecognition.stop()
+      setIsRecording(false)
+      return
+    }
+
+    try {
+      const { speechRecognition } = await NativeSpeechRecognition.checkPermissions()
+      if (speechRecognition !== 'granted') {
+        const result = await NativeSpeechRecognition.requestPermissions()
+        if (result.speechRecognition !== 'granted') {
+          setError(ui('voice.not_supported', language))
+          return
+        }
+      }
+
+      setIsRecording(true)
+      const { matches } = await NativeSpeechRecognition.start({
+        language: language === 'es' ? 'es-ES' : 'en-US',
+        popup: false,
+        partialResults: false,
+      })
+
+      if (matches?.[0]) {
+        setInput(matches[0])
+      }
+    } catch {
+      // User cancelled or error
+    } finally {
+      setIsRecording(false)
+    }
   }
 
   return (

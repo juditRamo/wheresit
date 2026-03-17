@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, Copy, Check, LogOut, Pencil } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
+import { Clipboard } from '@capacitor/clipboard'
 import { supabase } from '../supabaseClient'
 import { useLanguage } from '../i18n/LanguageContext'
 import { useTheme } from '../theme/ThemeContext'
@@ -109,7 +111,11 @@ export function SettingsPanel({ user, profile, updateProfile, household, househo
 
   async function handleCopyCode() {
     try {
-      await navigator.clipboard.writeText(household.id)
+      if (Capacitor.isNativePlatform()) {
+        await Clipboard.write({ string: household.id })
+      } else {
+        await navigator.clipboard.writeText(household.id)
+      }
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {

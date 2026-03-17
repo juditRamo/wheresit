@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react'
-import { Camera, X } from 'lucide-react'
+import { Camera as CameraIcon, X } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera'
 import { supabase } from '../supabaseClient'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
@@ -45,12 +47,54 @@ function resizeImage(file: File, maxSize: number): Promise<Blob> {
   })
 }
 
+function base64ToBlob(base64: string, contentType: string): Blob {
+  const byteCharacters = atob(base64)
+  const bytes = new Uint8Array(byteCharacters.length)
+  for (let i = 0; i < byteCharacters.length; i++) {
+    bytes[i] = byteCharacters.charCodeAt(i)
+  }
+  return new Blob([bytes], { type: contentType })
+}
+
 export function PhotoUpload({ householdId, entryId, photoPath, onPhotoChange }: PhotoUploadProps) {
   const { language } = useLanguage()
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
 
   const photoUrl = photoPath ? `${supabaseUrl}/storage/v1/object/public/item-photos/${photoPath}` : null
+
+  async function uploadBlob(blob: Blob) {
+    const id = entryId ?? crypto.randomUUID()
+    const path = `${householdId}/${id}.jpg`
+
+    const { error } = await supabase.storage
+      .from('item-photos')
+      .upload(path, blob, { contentType: 'image/jpeg', upsert: true })
+
+    if (!error) {
+      onPhotoChange(path)
+    }
+  }
+
+  async function handleNativeCapture() {
+    setUploading(true)
+    try {
+      const photo = await Camera.getPhoto({
+        quality: 80,
+        width: 800,
+        resultType: CameraResultType.Base64,
+        source: CameraSource.Prompt,
+      })
+      if (photo.base64String) {
+        const blob = base64ToBlob(photo.base64String, 'image/jpeg')
+        await uploadBlob(blob)
+      }
+    } catch {
+      // User cancelled or permission denied
+    } finally {
+      setUploading(false)
+    }
+  }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -59,19 +103,18 @@ export function PhotoUpload({ householdId, entryId, photoPath, onPhotoChange }: 
     setUploading(true)
     try {
       const resized = await resizeImage(file, 800)
-      const id = entryId ?? crypto.randomUUID()
-      const path = `${householdId}/${id}.jpg`
-
-      const { error } = await supabase.storage
-        .from('item-photos')
-        .upload(path, resized, { contentType: 'image/jpeg', upsert: true })
-
-      if (!error) {
-        onPhotoChange(path)
-      }
+      await uploadBlob(resized)
     } finally {
       setUploading(false)
       if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  function handleAddClick() {
+    if (Capacitor.isNativePlatform()) {
+      handleNativeCapture()
+    } else {
+      fileRef.current?.click()
     }
   }
 
@@ -91,11 +134,11 @@ export function PhotoUpload({ householdId, entryId, photoPath, onPhotoChange }: 
       ) : (
         <button
           className="photo-upload__add-btn"
-          onClick={() => fileRef.current?.click()}
+          onClick={handleAddClick}
           disabled={uploading}
           type="button"
         >
-          <Camera size={16} />
+          <CameraIcon size={16} />
           {uploading ? '...' : ui('photo.add', language)}
         </button>
       )}

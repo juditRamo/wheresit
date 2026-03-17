@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
+import { getItem, setItem, removeItem } from '../lib/storage'
 import type { Household } from '../types'
 
 const HOUSEHOLD_STORAGE_KEY = 'wheresit_household_id'
@@ -7,14 +8,19 @@ const HOUSEHOLD_STORAGE_KEY = 'wheresit_household_id'
 export function useHousehold(userId: string | undefined) {
   const [households, setHouseholds] = useState<Household[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedId, setSelectedIdState] = useState<string | null>(() =>
-    typeof localStorage !== 'undefined' ? localStorage.getItem(HOUSEHOLD_STORAGE_KEY) : null
-  )
+  const [selectedId, setSelectedIdState] = useState<string | null>(null)
+
+  // Load persisted household ID asynchronously
+  useEffect(() => {
+    getItem(HOUSEHOLD_STORAGE_KEY).then((id) => {
+      if (id) setSelectedIdState(id)
+    })
+  }, [])
 
   const setSelectedId = useCallback((id: string | null) => {
     setSelectedIdState(id)
-    if (id) localStorage.setItem(HOUSEHOLD_STORAGE_KEY, id)
-    else localStorage.removeItem(HOUSEHOLD_STORAGE_KEY)
+    if (id) setItem(HOUSEHOLD_STORAGE_KEY, id)
+    else removeItem(HOUSEHOLD_STORAGE_KEY)
   }, [])
 
   useEffect(() => {

@@ -11,12 +11,15 @@ A bilingual (English/Spanish) chat-style webapp to remember where you store thin
 - `npm run dev` — start Vite dev server (default http://localhost:5173)
 - `npm run build` — type-check with `tsc -b` then build with Vite
 - `npm run lint` — ESLint across the project
+- `npm run cap:sync` — build + sync to native platforms
+- `npm run cap:ios` — build, sync, and open in Xcode
+- `npm run cap:android` — build, sync, and open in Android Studio
 - `supabase db push` — apply migrations to the linked Supabase project
 - Edge functions are deployed via Supabase CLI: `supabase functions deploy chat`
 
 ## Architecture
 
-**Frontend:** Vite + React 19 + TypeScript. No component library — plain CSS per component (each `.tsx` has a matching `.css`). No router — tab-based SPA with `activeTab` state in `App.tsx`.
+**Frontend:** Vite + React 19 + TypeScript + Capacitor (iOS/Android). No component library — plain CSS per component (each `.tsx` has a matching `.css`). No router — tab-based SPA with `activeTab` state in `App.tsx`.
 
 **Backend:** Supabase (Auth, Postgres with RLS, Edge Functions, Storage for photos). The client talks directly to Supabase via `@supabase/supabase-js` (`src/supabaseClient.ts`). All DB access is RLS-scoped to household membership via `public.user_household_ids()`.
 
@@ -40,6 +43,10 @@ A bilingual (English/Spanish) chat-style webapp to remember where you store thin
 - `src/theme/` — `ThemeContext` for light/dark/system mode
 - `src/api/chat.ts` — client-side wrapper for calling the chat Edge Function
 - `src/lib/historyEvents.ts` — helper for recording history events from the frontend
+- `src/lib/storage.ts` — async storage wrapper (Capacitor Preferences on native, localStorage on web)
+- `capacitor.config.ts` — Capacitor configuration (app ID, plugins)
+- `ios/` — native iOS project (Xcode)
+- `android/` — native Android project (Android Studio)
 
 ### Conventions
 

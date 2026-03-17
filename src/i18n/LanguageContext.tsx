@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { getItem, setItem } from '../lib/storage'
 import type { Lang } from './picklists'
 
 interface LanguageContextValue {
@@ -17,26 +18,29 @@ function detectBrowserLang(): Lang {
   return 'en'
 }
 
-function loadPersistedLang(): Lang {
-  try {
-    const stored = localStorage.getItem('wheresit_lang')
-    if (stored === 'en' || stored === 'es') return stored
-  } catch { /* ignore */ }
-  return detectBrowserLang()
-}
-
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Lang>(loadPersistedLang)
+  const [language, setLanguageState] = useState<Lang>(detectBrowserLang)
+  const [loaded, setLoaded] = useState(false)
+
+  // Load persisted language asynchronously
+  useEffect(() => {
+    getItem('wheresit_lang').then((stored) => {
+      if (stored === 'en' || stored === 'es') {
+        setLanguageState(stored)
+      }
+      setLoaded(true)
+    })
+  }, [])
 
   function setLanguage(lang: Lang) {
     setLanguageState(lang)
   }
 
+  // Persist language changes
   useEffect(() => {
-    try {
-      localStorage.setItem('wheresit_lang', language)
-    } catch { /* ignore */ }
-  }, [language])
+    if (!loaded) return
+    setItem('wheresit_lang', language)
+  }, [language, loaded])
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage }}>

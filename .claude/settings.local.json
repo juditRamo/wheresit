@@ -9,7 +9,9 @@
       "Bash(supabase functions deploy:*)",
       "Bash(npx supabase:*)",
       "Bash(supabase db push:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(npx cap:*)",
+      "Bash(identify:*)"
     ]
   }
 }
