@@ -185,6 +185,8 @@ const strings: Record<string, { en: string; es: string }> = {
   'locations.icon': { en: 'Icon', es: 'Icono' },
   'locations.choose_icon': { en: 'Choose icon', es: 'Elegir icono' },
   'locations.name_placeholder': { en: 'Name', es: 'Nombre' },
+  'locations.add_inside': { en: 'Add place inside {name}', es: 'Añadir lugar dentro de {name}' },
+  'locations.no_children': { en: 'No places inside {name}', es: 'No hay lugares dentro de {name}' },
   'icons.rooms': { en: 'Rooms', es: 'Habitaciones' },
   'icons.furniture': { en: 'Furniture', es: 'Muebles' },
   'icons.containers': { en: 'Containers', es: 'Contenedores' },
