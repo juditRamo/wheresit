@@ -14,9 +14,10 @@ interface DashboardStats {
 interface DashboardCardsProps {
   stats: DashboardStats
   language: Lang
+  onForgottenClick?: () => void
 }
 
-export function DashboardCards({ stats, language }: DashboardCardsProps) {
+export function DashboardCards({ stats, language, onForgottenClick }: DashboardCardsProps) {
   if (stats.totalItems === 0) return null
 
   const roomLabel = stats.mostPopulatedRoom ?? '—'
@@ -43,7 +44,13 @@ export function DashboardCards({ stats, language }: DashboardCardsProps) {
         </div>
       </div>
 
-      <div className="dashboard__card">
+      <div
+        className="dashboard__card dashboard__card--clickable"
+        onClick={onForgottenClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onForgottenClick?.() }}
+      >
         <div className="dashboard__card-icon">
           <AlertTriangle size={16} color="var(--gold-primary)" />
         </div>

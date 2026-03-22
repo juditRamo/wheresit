@@ -10,11 +10,11 @@ import {
   Headphones,
   Package,
   Home,
+  History,
 } from 'lucide-react'
 import { useStorageEntries } from '../hooks/useStorageEntries'
 import { usePlaces } from '../hooks/usePlaces'
 import { useLanguage } from '../i18n/LanguageContext'
-import { t, CATEGORIES } from '../i18n/picklists'
 import { ui } from '../i18n/ui'
 import { getPlaceIcon } from '../lib/placeIcons'
 import { recordHistoryEvent } from '../lib/historyEvents'
@@ -30,7 +30,7 @@ interface InventoryViewProps {
   onClearFilter: () => void
 }
 
-type SortTab = 'room' | 'category' | 'recent' | 'activity'
+type SortTab = 'room' | 'recent'
 
 const ITEM_ICONS: Record<string, typeof Package> = {
   passport: BookOpen,
@@ -114,17 +114,6 @@ function groupByPlace(entries: StorageEntry[], places: Array<{ id: string; label
   return groups
 }
 
-function groupByCategory(entries: StorageEntry[], lang: 'en' | 'es'): Record<string, { key: string; entries: StorageEntry[] }> {
-  const groups: Record<string, { key: string; entries: StorageEntry[] }> = {}
-  for (const entry of entries) {
-    const catKey = entry.category_key ?? 'misc'
-    if (!groups[catKey]) groups[catKey] = { key: catKey, entries: [] }
-    groups[catKey].entries.push(entry)
-    void t(CATEGORIES, catKey, lang)
-  }
-  return groups
-}
-
 export function InventoryView({ householdId, filter, onClearFilter }: InventoryViewProps) {
   const { entries, loading, refetch, updateEntry, deleteEntry, createEntry, stats } = useStorageEntries(householdId)
   const { getDescendantIds, getPlaceById, getPlacePath, places } = usePlaces(householdId)
@@ -134,8 +123,8 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
   const [editingEntry, setEditingEntry] = useState<StorageEntry | null>(null)
   const [showAddSheet, setShowAddSheet] = useState(false)
   const [placeChipFilter, setPlaceChipFilter] = useState<string | null>(null)
-  const [categoryChipFilter, setCategoryChipFilter] = useState<string | null>(null)
-
+  const [showActivity, setShowActivity] = useState(false)
+  const [showForgotten, setShowForgotten] = useState(false)
 
   // Apply location filter if set
   let filtered = filter
@@ -168,13 +157,15 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
   if (placeChipFilter) {
     filtered = filtered.filter((e) => getRootPlaceLabel(e, places) === placeChipFilter)
   }
-  if (categoryChipFilter) {
-    filtered = filtered.filter((e) => e.category_key === categoryChipFilter)
+
+  // Apply forgotten filter
+  if (showForgotten) {
+    const forgottenIds = new Set(stats.forgottenEntries.map((e) => e.id))
+    filtered = filtered.filter((e) => forgottenIds.has(e.id))
   }
 
   // Compute chip options from all entries (before chip filtering)
   const placeChipKeys = [...new Set(entries.map((e) => getRootPlaceLabel(e, places)).filter(Boolean))] as string[]
-  const categoryChipKeys = [...new Set(entries.map((e) => e.category_key).filter(Boolean))] as string[]
 
   const itemCount = (n: number) =>
     n === 1 ? ui('inventory.item_one', language) : ui('inventory.item_other', language, { n })
@@ -188,22 +179,12 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
       label: g.label || ui('inventory.other_room', language),
       items: g.entries,
     }))
-  } else if (activeTab === 'category') {
-    const groups = groupByCategory(filtered, language)
-    sections = Object.entries(groups).map(([, g]) => ({
-      key: g.key,
-      label: t(CATEGORIES, g.key, language) || ui('inventory.uncategorized', language),
-      items: g.entries,
-    }))
-  } else if (activeTab === 'recent') {
-    sections = [{ key: 'all', label: '', items: filtered }]
   } else {
-    sections = []
+    sections = [{ key: 'all', label: '', items: filtered }]
   }
 
   async function handleSaveEdit(data: {
     item_name: string
-    category_key: string | null
     location_description: string
     photo_path?: string | null
     place_id?: string | null
@@ -248,7 +229,6 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
 
   async function handleCreateEntry(data: {
     item_name: string
-    category_key: string | null
     location_description: string
     photo_path?: string | null
     place_id?: string | null
@@ -277,6 +257,13 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
           </h1>
         </div>
         <div className="inventory__header-right">
+          <button
+            className={`inventory__icon-btn ${showActivity ? 'inventory__icon-btn--active' : ''}`}
+            onClick={() => setShowActivity(true)}
+            aria-label={ui('activity.title', language)}
+          >
+            <History size={16} />
+          </button>
           <button className="inventory__icon-btn" onClick={refetch} aria-label="Sync">
             <RefreshCw size={16} className={loading ? 'inventory__spin' : ''} />
           </button>
@@ -291,8 +278,8 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
       </div>
 
       {/* Dashboard cards (when no filter active) */}
-      {!filter && !searchQuery && activeTab !== 'activity' && (
-        <DashboardCards stats={stats} language={language} />
+      {!filter && !searchQuery && (
+        <DashboardCards stats={stats} language={language} onForgottenClick={() => setShowForgotten(true)} />
       )}
 
       {/* Filter indicator */}
@@ -309,6 +296,19 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
             })}
           </span>
           <button className="inventory__filter-clear" onClick={onClearFilter}>
+            <X size={12} />
+            {ui('inventory.clear_filter', language)}
+          </button>
+        </div>
+      )}
+
+      {/* Forgotten items filter bar */}
+      {showForgotten && (
+        <div className="inventory__filter-bar">
+          <span className="inventory__filter-text">
+            {ui('dash.showing_forgotten', language)}
+          </span>
+          <button className="inventory__filter-clear" onClick={() => setShowForgotten(false)}>
             <X size={12} />
             {ui('inventory.clear_filter', language)}
           </button>
@@ -336,136 +336,111 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
           {ui('inventory.by_room', language)}
         </button>
         <button
-          className={`inventory__tab ${activeTab === 'category' ? 'inventory__tab--active' : ''}`}
-          onClick={() => setActiveTab('category')}
-        >
-          {ui('inventory.by_category', language)}
-        </button>
-        <button
           className={`inventory__tab ${activeTab === 'recent' ? 'inventory__tab--active' : ''}`}
           onClick={() => setActiveTab('recent')}
         >
           {ui('inventory.recent', language)}
         </button>
-        <button
-          className={`inventory__tab ${activeTab === 'activity' ? 'inventory__tab--active' : ''}`}
-          onClick={() => setActiveTab('activity')}
-        >
-          {ui('activity.title', language)}
-        </button>
       </div>
 
       {/* Filter chips */}
-      {(placeChipKeys.length > 0 || categoryChipKeys.length > 0) && activeTab !== 'activity' && (
+      {placeChipKeys.length > 0 && (
         <div className="inventory__chips">
-          {placeChipKeys.length > 0 && (
-            <>
-              <span className="inventory__chip-label">{ui('search.filter_room', language)}</span>
-              {placeChipKeys.map((key) => (
-                <button
-                  key={key}
-                  className={`inventory__chip ${placeChipFilter === key ? 'inventory__chip--active' : ''}`}
-                  onClick={() => setPlaceChipFilter(placeChipFilter === key ? null : key)}
-                >
-                  {key}
-                </button>
-              ))}
-            </>
-          )}
-          {placeChipKeys.length > 0 && categoryChipKeys.length > 0 && (
-            <div className="inventory__chip-divider" />
-          )}
-          {categoryChipKeys.length > 0 && (
-            <>
-              <span className="inventory__chip-label">{ui('search.filter_category', language)}</span>
-              {categoryChipKeys.map((key) => (
-                <button
-                  key={key}
-                  className={`inventory__chip ${categoryChipFilter === key ? 'inventory__chip--active' : ''}`}
-                  onClick={() => setCategoryChipFilter(categoryChipFilter === key ? null : key)}
-                >
-                  {t(CATEGORIES, key, language)}
-                </button>
-              ))}
-            </>
-          )}
+          <span className="inventory__chip-label">{ui('search.filter_room', language)}</span>
+          {placeChipKeys.map((key) => (
+            <button
+              key={key}
+              className={`inventory__chip ${placeChipFilter === key ? 'inventory__chip--active' : ''}`}
+              onClick={() => setPlaceChipFilter(placeChipFilter === key ? null : key)}
+            >
+              {key}
+            </button>
+          ))}
         </div>
       )}
 
-      {/* Activity Feed tab */}
-      {activeTab === 'activity' ? (
-        <ActivityFeed householdId={householdId} />
-      ) : (
-        /* Items List */
-        <div className="inventory__list">
-          {sections.map((section) => {
-            const RoomIcon = getRoomIcon(section.key, places)
-            return (
-              <div key={section.key} className="inventory__section">
-                {(activeTab === 'room' || activeTab === 'category') && (
-                  <div className="inventory__section-header">
-                    <div className="inventory__section-left">
-                      <RoomIcon size={16} color="var(--gold-primary)" />
-                      <span className="inventory__section-title">{section.label}</span>
-                    </div>
-                    <span className="inventory__section-count">
-                      {itemCount(section.items.length)}
-                    </span>
+      {/* Items List */}
+      <div className="inventory__list">
+        {sections.map((section) => {
+          const RoomIcon = getRoomIcon(section.key, places)
+          return (
+            <div key={section.key} className="inventory__section">
+              {activeTab === 'room' && (
+                <div className="inventory__section-header">
+                  <div className="inventory__section-left">
+                    <RoomIcon size={16} color="var(--gold-primary)" />
+                    <span className="inventory__section-title">{section.label}</span>
                   </div>
-                )}
-                {section.items.map((entry) => {
-                  const ItemIcon = getItemIcon(entry.item_name)
-                  const thumbnailUrl = entry.photo_path
-                    ? `${supabaseUrl}/storage/v1/object/public/item-photos/${entry.photo_path}`
-                    : null
-                  return (
-                    <div
-                      key={entry.id}
-                      className="inventory__item inventory__item--clickable"
-                      onClick={() => setEditingEntry(entry)}
-                    >
-                      <div className="inventory__item-icon">
-                        {thumbnailUrl ? (
-                          <img src={thumbnailUrl} alt="" className="inventory__item-thumb" />
-                        ) : (
-                          <ItemIcon size={16} color="var(--gold-primary)" />
-                        )}
-                      </div>
-                      <div className="inventory__item-info">
-                        <span className="inventory__item-name">{entry.item_name}</span>
-                        <span className="inventory__item-loc">{getLocationDisplay(entry, getPlacePath)}</span>
-                      </div>
-                      {entry.category_key && (
-                        <span className="inventory__item-badge">
-                          {t(CATEGORIES, entry.category_key, language)}
-                        </span>
+                  <span className="inventory__section-count">
+                    {itemCount(section.items.length)}
+                  </span>
+                </div>
+              )}
+              {section.items.map((entry) => {
+                const ItemIcon = getItemIcon(entry.item_name)
+                const thumbnailUrl = entry.photo_path
+                  ? `${supabaseUrl}/storage/v1/object/public/item-photos/${entry.photo_path}`
+                  : null
+                return (
+                  <div
+                    key={entry.id}
+                    className="inventory__item inventory__item--clickable"
+                    onClick={() => setEditingEntry(entry)}
+                  >
+                    <div className="inventory__item-icon">
+                      {thumbnailUrl ? (
+                        <img src={thumbnailUrl} alt="" className="inventory__item-thumb" />
+                      ) : (
+                        <ItemIcon size={16} color="var(--gold-primary)" />
                       )}
                     </div>
-                  )
-                })}
-              </div>
-            )
-          })}
-          {filtered.length === 0 && !loading && (
-            <div className="inventory__empty">
-              {entries.length === 0 && !searchQuery ? (
-                <>
-                  <p className="inventory__empty-title">{ui('inventory.empty_welcome', language)}</p>
-                  <p className="inventory__empty-hint">{ui('inventory.empty_hint', language)}</p>
-                  <button
-                    className="inventory__empty-cta"
-                    onClick={() => setShowAddSheet(true)}
-                  >
-                    <Plus size={16} />
-                    {ui('add.title', language)}
-                  </button>
-                </>
-              ) : (
-                <p>{ui('inventory.empty', language)}</p>
-              )}
+                    <div className="inventory__item-info">
+                      <span className="inventory__item-name">{entry.item_name}</span>
+                      <span className="inventory__item-loc">{getLocationDisplay(entry, getPlacePath)}</span>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-          )}
-        </div>
+          )
+        })}
+        {filtered.length === 0 && !loading && (
+          <div className="inventory__empty">
+            {entries.length === 0 && !searchQuery ? (
+              <>
+                <p className="inventory__empty-title">{ui('inventory.empty_welcome', language)}</p>
+                <p className="inventory__empty-hint">{ui('inventory.empty_hint', language)}</p>
+                <button
+                  className="inventory__empty-cta"
+                  onClick={() => setShowAddSheet(true)}
+                >
+                  <Plus size={16} />
+                  {ui('add.title', language)}
+                </button>
+              </>
+            ) : (
+              <p>{ui('inventory.empty', language)}</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Activity slide-over panel */}
+      {showActivity && (
+        <>
+          <div className="inventory__overlay" onClick={() => setShowActivity(false)} />
+          <div className="inventory__activity-panel">
+            <div className="inventory__activity-header">
+              <h2 className="inventory__activity-title">{ui('activity.title', language)}</h2>
+              <button className="inventory__icon-btn" onClick={() => setShowActivity(false)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="inventory__activity-body">
+              <ActivityFeed householdId={householdId} />
+            </div>
+          </div>
+        </>
       )}
 
       {/* Edit sheet */}

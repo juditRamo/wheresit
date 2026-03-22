@@ -40,7 +40,6 @@ export interface StorageEntry {
   household_id: string
   item_name: string
   location_description: string
-  category_key: string | null
   place_id: string | null
   created_at: string
   updated_at: string
@@ -82,7 +81,6 @@ export interface PendingUpdate {
   oldLocation: string
   newLocation: string
   item_name: string
-  category_key?: string
 }
 
 export interface PendingPlaceMatch {

@@ -64,7 +64,6 @@ interface PendingUpdate {
   oldLocation: string
   newLocation: string
   item_name: string
-  category_key?: string
 }
 
 /**
@@ -306,7 +305,7 @@ Deno.serve(async (req) => {
 
       const writeData: Record<string, unknown> = {
         location_description: locationDesc,
-        category_key: intentResult.category ?? null,
+        category_key: null,
         updated_at: new Date().toISOString(),
         created_by: user.id,
       }

@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { X, Trash2, Save } from 'lucide-react'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
-import { CATEGORIES, t } from '../i18n/picklists'
 import type { StorageEntry } from '../types'
 import { usePlaces } from '../hooks/usePlaces'
 import { PhotoUpload } from './PhotoUpload'
@@ -15,7 +14,6 @@ interface ItemEditSheetProps {
   householdId: string
   onSave: (data: {
     item_name: string
-    category_key: string | null
     location_description: string
     photo_path?: string | null
     place_id?: string | null
@@ -30,7 +28,6 @@ export function ItemEditSheet({ mode, entry, householdId, onSave, onDelete, onCl
   const [itemName, setItemName] = useState(entry?.item_name ?? '')
   const [placeId, setPlaceId] = useState(entry?.place_id ?? '')
   const [locationText, setLocationText] = useState(entry?.place_id ? '' : (entry?.location_description ?? ''))
-  const [categoryKey, setCategoryKey] = useState(entry?.category_key ?? '')
   const [photoPath, setPhotoPath] = useState<string | null>(entry?.photo_path ?? null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showPlacePicker, setShowPlacePicker] = useState(mode === 'create' || !entry?.place_id)
@@ -49,7 +46,6 @@ export function ItemEditSheet({ mode, entry, householdId, onSave, onDelete, onCl
     if (!itemName.trim()) return
     onSave({
       item_name: itemName.trim().toLowerCase(),
-      category_key: categoryKey || null,
       location_description: getLocationDescription(),
       photo_path: photoPath,
       place_id: placeId || null,
@@ -167,16 +163,6 @@ export function ItemEditSheet({ mode, entry, householdId, onSave, onDelete, onCl
                 placeholder="e.g. living room › desk › top drawer"
               />
             )}
-          </div>
-
-          <div className="edit-sheet__field">
-            <label className="edit-sheet__label">{ui('add.category', language)}</label>
-            <select className="edit-sheet__select" value={categoryKey} onChange={(e) => setCategoryKey(e.target.value)}>
-              <option value="">—</option>
-              {Object.entries(CATEGORIES).map(([key]) => (
-                <option key={key} value={key}>{t(CATEGORIES, key, language)}</option>
-              ))}
-            </select>
           </div>
 
           <PhotoUpload

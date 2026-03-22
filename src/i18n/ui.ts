@@ -8,7 +8,6 @@ const strings: Record<string, { en: string; es: string }> = {
   'nav.chat': { en: 'Chat', es: 'Chat' },
   'nav.items': { en: 'Items', es: 'Objetos' },
   'nav.locations': { en: 'Locations', es: 'Ubicaciones' },
-  'nav.search': { en: 'Search', es: 'Buscar' },
 
   // Chat
   'chat.placeholder': { en: 'Tell WheresIt where you put something\u2026', es: 'Dile a WheresIt d\u00f3nde guardaste algo\u2026' },
@@ -39,7 +38,6 @@ const strings: Record<string, { en: string; es: string }> = {
   'inventory.subtitle_other': { en: '{n} items catalogued', es: '{n} objetos catalogados' },
   'inventory.search': { en: 'Search your items\u2026', es: 'Busca tus objetos\u2026' },
   'inventory.by_room': { en: 'By Room', es: 'Por Habitaci\u00f3n' },
-  'inventory.by_category': { en: 'By Category', es: 'Por Categor\u00eda' },
   'inventory.recent': { en: 'Recent', es: 'Recientes' },
   'inventory.empty': { en: 'No items found.', es: 'No se encontraron objetos.' },
   'inventory.empty_welcome': { en: 'Your inventory is empty', es: 'Tu inventario est\u00e1 vac\u00edo' },
@@ -49,11 +47,7 @@ const strings: Record<string, { en: string; es: string }> = {
   'inventory.clear_filter': { en: 'Clear filter', es: 'Quitar filtro' },
   'inventory.filtered': { en: 'Filtered by: {room}', es: 'Filtrado por: {room}' },
   'inventory.filtered_spot': { en: 'Filtered by: {room} \u203A {spot}', es: 'Filtrado por: {room} \u203A {spot}' },
-  'inventory.uncategorized': { en: 'Uncategorized', es: 'Sin categor\u00eda' },
   'inventory.other_room': { en: 'Other', es: 'Otros' },
-
-  // Search tab placeholder
-  // 'search.coming_soon' removed — SearchView is now functional
 
   // Edit / Delete (1.1)
   'edit.title': { en: 'Edit item', es: 'Editar objeto' },
@@ -69,7 +63,6 @@ const strings: Record<string, { en: string; es: string }> = {
   'add.room': { en: 'Room', es: 'Habitaci\u00f3n' },
   'add.spot': { en: 'Spot', es: 'Lugar' },
   'add.detail': { en: 'Detail', es: 'Detalle' },
-  'add.category': { en: 'Category', es: 'Categor\u00eda' },
   'add.save': { en: 'Add item', es: 'A\u00f1adir objeto' },
 
   // Multi-result queries (2.1)
@@ -88,7 +81,6 @@ const strings: Record<string, { en: string; es: string }> = {
   'search.placeholder': { en: 'Search items & locations...', es: 'Buscar objetos y ubicaciones...' },
   'search.no_results': { en: 'No results', es: 'Sin resultados' },
   'search.filter_room': { en: 'Filter by room', es: 'Filtrar por habitaci\u00f3n' },
-  'search.filter_category': { en: 'Filter by category', es: 'Filtrar por categor\u00eda' },
 
   // Dashboard (3.2)
   'dash.total_items': { en: 'Total items', es: 'Total objetos' },
@@ -96,6 +88,7 @@ const strings: Record<string, { en: string; es: string }> = {
   'dash.forgotten': { en: 'Forgotten items', es: 'Objetos olvidados' },
   'dash.forgotten_hint': { en: "items haven't been touched in 90+ days", es: 'objetos sin mover en m\u00e1s de 90 d\u00edas' },
   'dash.recently_moved': { en: 'Recently moved', es: 'Movidos recientemente' },
+  'dash.showing_forgotten': { en: 'Showing forgotten items (90+ days)', es: 'Mostrando objetos olvidados (90+ d\u00edas)' },
 
   // Activity feed (3.3)
   'activity.title': { en: 'Activity', es: 'Actividad' },

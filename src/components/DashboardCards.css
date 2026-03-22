@@ -16,6 +16,16 @@
   border-radius: 10px;
 }
 
+.dashboard__card--clickable {
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.dashboard__card--clickable:hover,
+.dashboard__card--clickable:active {
+  border-color: var(--gold-primary);
+}
+
 .dashboard__card-icon {
   width: 32px;
   height: 32px;
