@@ -30,7 +30,7 @@ interface InventoryViewProps {
   onClearFilter: () => void
 }
 
-type SortTab = 'room' | 'recent'
+type SortTab = 'place' | 'recent'
 
 const ITEM_ICONS: Record<string, typeof Package> = {
   passport: BookOpen,
@@ -52,7 +52,7 @@ function getItemIcon(itemName: string) {
   return Package
 }
 
-function getRoomIcon(rootPlaceId: string, places: Place[]) {
+function getPlaceGroupIcon(rootPlaceId: string, places: Place[]) {
   const place = places.find(p => p.id === rootPlaceId)
   if (place?.icon) return getPlaceIcon(place.icon)
   return Home
@@ -118,7 +118,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
   const { entries, loading, refetch, updateEntry, deleteEntry, createEntry, stats } = useStorageEntries(householdId)
   const { getDescendantIds, getPlaceById, getPlacePath, places } = usePlaces(householdId)
   const { language } = useLanguage()
-  const [activeTab, setActiveTab] = useState<SortTab>('room')
+  const [activeTab, setActiveTab] = useState<SortTab>('place')
   const [searchQuery, setSearchQuery] = useState('')
   const [editingEntry, setEditingEntry] = useState<StorageEntry | null>(null)
   const [showAddSheet, setShowAddSheet] = useState(false)
@@ -172,7 +172,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
 
   let sections: Array<{ label: string; key: string; items: StorageEntry[] }>
 
-  if (activeTab === 'room') {
+  if (activeTab === 'place') {
     const groups = groupByPlace(filtered, places)
     sections = Object.entries(groups).map(([, g]) => ({
       key: g.key,
@@ -287,7 +287,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
         <div className="inventory__filter-bar">
           <span className="inventory__filter-text">
             {ui('inventory.filtered', language, {
-              room: filter.place_id
+              place: filter.place_id
                 ? getPlacePath(filter.place_id)
                     .map((p) => p.label)
                     .join(' › ') ||
@@ -330,8 +330,8 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
       {/* Tabs */}
       <div className="inventory__tabs">
         <button
-          className={`inventory__tab ${activeTab === 'room' ? 'inventory__tab--active' : ''}`}
-          onClick={() => setActiveTab('room')}
+          className={`inventory__tab ${activeTab === 'place' ? 'inventory__tab--active' : ''}`}
+          onClick={() => setActiveTab('place')}
         >
           {ui('inventory.by_room', language)}
         </button>
@@ -362,13 +362,13 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
       {/* Items List */}
       <div className="inventory__list">
         {sections.map((section) => {
-          const RoomIcon = getRoomIcon(section.key, places)
+          const PlaceGroupIcon = getPlaceGroupIcon(section.key, places)
           return (
             <div key={section.key} className="inventory__section">
-              {activeTab === 'room' && (
+              {activeTab === 'place' && (
                 <div className="inventory__section-header">
                   <div className="inventory__section-left">
-                    <RoomIcon size={16} color="var(--gold-primary)" />
+                    <PlaceGroupIcon size={16} color="var(--gold-primary)" />
                     <span className="inventory__section-title">{section.label}</span>
                   </div>
                   <span className="inventory__section-count">

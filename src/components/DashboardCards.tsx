@@ -5,8 +5,8 @@ import './DashboardCards.css'
 
 interface DashboardStats {
   totalItems: number
-  topRooms: [string, number][]
-  mostPopulatedRoom: string | null
+  topPlaces: [string, number][]
+  mostPopulatedPlace: string | null
   forgottenCount: number
   recentlyMovedCount: number
 }
@@ -20,7 +20,7 @@ interface DashboardCardsProps {
 export function DashboardCards({ stats, language, onForgottenClick }: DashboardCardsProps) {
   if (stats.totalItems === 0) return null
 
-  const roomLabel = stats.mostPopulatedRoom ?? '—'
+  const placeLabel = stats.mostPopulatedPlace ?? '—'
 
   return (
     <div className="dashboard">
@@ -39,7 +39,7 @@ export function DashboardCards({ stats, language, onForgottenClick }: DashboardC
           <Home size={16} color="var(--gold-primary)" />
         </div>
         <div className="dashboard__card-info">
-          <span className="dashboard__card-value">{roomLabel}</span>
+          <span className="dashboard__card-value">{placeLabel}</span>
           <span className="dashboard__card-label">{ui('dash.most_used_room', language)}</span>
         </div>
       </div>

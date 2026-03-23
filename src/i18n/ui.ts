@@ -37,7 +37,7 @@ const strings: Record<string, { en: string; es: string }> = {
   'inventory.subtitle_one': { en: '1 item catalogued', es: '1 objeto catalogado' },
   'inventory.subtitle_other': { en: '{n} items catalogued', es: '{n} objetos catalogados' },
   'inventory.search': { en: 'Search your items\u2026', es: 'Busca tus objetos\u2026' },
-  'inventory.by_room': { en: 'By Room', es: 'Por Habitaci\u00f3n' },
+  'inventory.by_room': { en: 'By Place', es: 'Por Lugar' },
   'inventory.recent': { en: 'Recent', es: 'Recientes' },
   'inventory.empty': { en: 'No items found.', es: 'No se encontraron objetos.' },
   'inventory.empty_welcome': { en: 'Your inventory is empty', es: 'Tu inventario est\u00e1 vac\u00edo' },
@@ -45,8 +45,8 @@ const strings: Record<string, { en: string; es: string }> = {
   'inventory.item_one': { en: '1 item', es: '1 objeto' },
   'inventory.item_other': { en: '{n} items', es: '{n} objetos' },
   'inventory.clear_filter': { en: 'Clear filter', es: 'Quitar filtro' },
-  'inventory.filtered': { en: 'Filtered by: {room}', es: 'Filtrado por: {room}' },
-  'inventory.filtered_spot': { en: 'Filtered by: {room} \u203A {spot}', es: 'Filtrado por: {room} \u203A {spot}' },
+  'inventory.filtered': { en: 'Filtered by: {place}', es: 'Filtrado por: {place}' },
+  'inventory.filtered_spot': { en: 'Filtered by: {place} \u203A {spot}', es: 'Filtrado por: {place} \u203A {spot}' },
   'inventory.other_room': { en: 'Other', es: 'Otros' },
 
   // Edit / Delete (1.1)
@@ -60,7 +60,7 @@ const strings: Record<string, { en: string; es: string }> = {
   // Quick-Add (1.2)
   'add.title': { en: 'Add item', es: 'A\u00f1adir objeto' },
   'add.item_name': { en: 'Item name', es: 'Nombre del objeto' },
-  'add.room': { en: 'Room', es: 'Habitaci\u00f3n' },
+  'add.room': { en: 'Place', es: 'Lugar' },
   'add.spot': { en: 'Spot', es: 'Lugar' },
   'add.detail': { en: 'Detail', es: 'Detalle' },
   'add.save': { en: 'Add item', es: 'A\u00f1adir objeto' },
@@ -80,11 +80,11 @@ const strings: Record<string, { en: string; es: string }> = {
   // Search tab (3.1)
   'search.placeholder': { en: 'Search items & locations...', es: 'Buscar objetos y ubicaciones...' },
   'search.no_results': { en: 'No results', es: 'Sin resultados' },
-  'search.filter_room': { en: 'Filter by room', es: 'Filtrar por habitaci\u00f3n' },
+  'search.filter_room': { en: 'Filter by place', es: 'Filtrar por lugar' },
 
   // Dashboard (3.2)
   'dash.total_items': { en: 'Total items', es: 'Total objetos' },
-  'dash.most_used_room': { en: 'Most used room', es: 'Habitaci\u00f3n m\u00e1s usada' },
+  'dash.most_used_room': { en: 'Most used place', es: 'Lugar m\u00e1s usado' },
   'dash.forgotten': { en: 'Forgotten items', es: 'Objetos olvidados' },
   'dash.forgotten_hint': { en: "items haven't been touched in 90+ days", es: 'objetos sin mover en m\u00e1s de 90 d\u00edas' },
   'dash.recently_moved': { en: 'Recently moved', es: 'Movidos recientemente' },
@@ -197,7 +197,7 @@ const strings: Record<string, { en: string; es: string }> = {
 
 /**
  * Look up a UI string by key and language.
- * Supports simple {n} and {room} interpolation via the `vars` argument.
+ * Supports simple {n} and {place} interpolation via the `vars` argument.
  */
 export function ui(key: string, lang: Lang, vars?: Record<string, string | number>): string {
   const entry = strings[key]

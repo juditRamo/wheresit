@@ -91,10 +91,10 @@ export function useStorageEntries(householdId: string | null) {
       const key = e.location_description?.split(' › ')[0] ?? 'other'
       locationCounts[key] = (locationCounts[key] ?? 0) + 1
     }
-    const topRooms = Object.entries(locationCounts)
+    const topPlaces = Object.entries(locationCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
-    const mostPopulatedRoom = topRooms[0]?.[0] ?? null
+    const mostPopulatedPlace = topPlaces[0]?.[0] ?? null
 
     // Forgotten items (not updated in 90+ days)
     const forgotten = entries.filter(
@@ -108,8 +108,8 @@ export function useStorageEntries(householdId: string | null) {
 
     return {
       totalItems,
-      topRooms,
-      mostPopulatedRoom,
+      topPlaces,
+      mostPopulatedPlace,
       forgottenCount: forgotten.length,
       recentlyMovedCount: recentlyMoved.length,
       forgottenEntries: forgotten,
