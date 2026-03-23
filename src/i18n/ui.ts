@@ -186,6 +186,7 @@ const strings: Record<string, { en: string; es: string }> = {
   'locations.section_places': { en: 'Places', es: 'Lugares' },
   'locations.section_items': { en: 'Items', es: 'Objetos' },
   'locations.no_items': { en: 'No items in {name}', es: 'No hay objetos en {name}' },
+  'locations.drag_handle': { en: 'Drag to reorder', es: 'Arrastra para reordenar' },
   'icons.rooms': { en: 'Rooms', es: 'Habitaciones' },
   'icons.furniture': { en: 'Furniture', es: 'Muebles' },
   'icons.containers': { en: 'Containers', es: 'Contenedores' },

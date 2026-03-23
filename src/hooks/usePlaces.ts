@@ -17,7 +17,7 @@ export function usePlaces(householdId: string | null) {
       .from('places')
       .select('*')
       .eq('household_id', householdId)
-      .order('created_at', { ascending: true })
+      .order('sort_order', { ascending: true })
       .then(({ data, error }) => {
         setLoading(false)
         if (error) setPlaces([])
@@ -49,6 +49,16 @@ export function usePlaces(householdId: string | null) {
         roots.push(node)
       }
     }
+    // Sort children by sort_order within each parent
+    const sortByOrder = (a: PlaceWithChildren, b: PlaceWithChildren) => a.sort_order - b.sort_order
+    roots.sort(sortByOrder)
+    function sortChildren(nodes: PlaceWithChildren[]) {
+      for (const n of nodes) {
+        n.children.sort(sortByOrder)
+        sortChildren(n.children)
+      }
+    }
+    sortChildren(roots)
     return roots
   }, [places])
 
@@ -61,6 +71,27 @@ export function usePlaces(householdId: string | null) {
       canonical_key?: string | null
     }) => {
       if (!householdId) return { data: null as Place | null, error: new Error('No household') }
+      const parentId = data.parent_place_id ?? null
+      let maxSortOrder = 0
+      if (parentId === null) {
+        const { data: rows } = await supabase
+          .from('places')
+          .select('sort_order')
+          .eq('household_id', householdId)
+          .is('parent_place_id', null)
+          .order('sort_order', { ascending: false })
+          .limit(1)
+        maxSortOrder = (rows?.[0]?.sort_order ?? 0) + 1
+      } else {
+        const { data: rows } = await supabase
+          .from('places')
+          .select('sort_order')
+          .eq('household_id', householdId)
+          .eq('parent_place_id', parentId)
+          .order('sort_order', { ascending: false })
+          .limit(1)
+        maxSortOrder = (rows?.[0]?.sort_order ?? 0) + 1
+      }
       const { data: created, error } = await supabase
         .from('places')
         .insert({
@@ -68,9 +99,10 @@ export function usePlaces(householdId: string | null) {
           type: 'place',
           icon: data.icon ?? 'map-pin',
           label: data.label,
-          parent_place_id: data.parent_place_id ?? null,
+          parent_place_id: parentId,
           attributes: data.attributes ?? {},
           canonical_key: data.canonical_key ?? null,
+          sort_order: maxSortOrder,
         })
         .select()
         .single()
@@ -100,9 +132,30 @@ export function usePlaces(householdId: string | null) {
   const movePlace = useCallback(
     async (placeId: string, newParentPlaceId: string | null) => {
       if (!householdId) return { error: new Error('No household') }
+      // Assign sort_order = max + 1 in the new sibling group
+      let maxSortOrder = 0
+      if (newParentPlaceId === null) {
+        const { data: rows } = await supabase
+          .from('places')
+          .select('sort_order')
+          .eq('household_id', householdId)
+          .is('parent_place_id', null)
+          .order('sort_order', { ascending: false })
+          .limit(1)
+        maxSortOrder = (rows?.[0]?.sort_order ?? 0) + 1
+      } else {
+        const { data: rows } = await supabase
+          .from('places')
+          .select('sort_order')
+          .eq('household_id', householdId)
+          .eq('parent_place_id', newParentPlaceId)
+          .order('sort_order', { ascending: false })
+          .limit(1)
+        maxSortOrder = (rows?.[0]?.sort_order ?? 0) + 1
+      }
       const { error } = await supabase
         .from('places')
-        .update({ parent_place_id: newParentPlaceId })
+        .update({ parent_place_id: newParentPlaceId, sort_order: maxSortOrder })
         .eq('id', placeId)
         .eq('household_id', householdId)
       if (!error) refetch()
@@ -121,6 +174,36 @@ export function usePlaces(householdId: string | null) {
         .eq('household_id', householdId)
       if (!error) refetch()
       return { error }
+    },
+    [householdId, refetch]
+  )
+
+  const reorderPlaces = useCallback(
+    async (orderedIds: string[]) => {
+      if (!householdId) return
+      // Optimistic update
+      setPlaces((prev) => {
+        const updated = [...prev]
+        for (let i = 0; i < orderedIds.length; i++) {
+          const idx = updated.findIndex((p) => p.id === orderedIds[i])
+          if (idx !== -1) updated[idx] = { ...updated[idx], sort_order: i + 1 }
+        }
+        return updated
+      })
+      // Persist to DB
+      try {
+        await Promise.all(
+          orderedIds.map((id, i) =>
+            supabase
+              .from('places')
+              .update({ sort_order: i + 1 })
+              .eq('id', id)
+              .eq('household_id', householdId)
+          )
+        )
+      } catch {
+        refetch()
+      }
     },
     [householdId, refetch]
   )
@@ -169,6 +252,7 @@ export function usePlaces(householdId: string | null) {
     updatePlace,
     movePlace,
     deletePlace,
+    reorderPlaces,
     getPlaceById,
     getDescendantIds,
     getPlacePath,

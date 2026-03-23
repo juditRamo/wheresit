@@ -217,6 +217,27 @@ export async function resolveOrCreatePlace(
       parentId = existing.id
       continue
     }
+    // Determine sort_order for the new place (max among siblings + 1)
+    let sortOrder = 1
+    if (parentId === null) {
+      const { data: maxRows } = await supabase
+        .from('places')
+        .select('sort_order')
+        .eq('household_id', householdId)
+        .is('parent_place_id', null)
+        .order('sort_order', { ascending: false })
+        .limit(1)
+      sortOrder = ((maxRows as Array<{ sort_order: number }> | null)?.[0]?.sort_order ?? 0) + 1
+    } else {
+      const { data: maxRows } = await supabase
+        .from('places')
+        .select('sort_order')
+        .eq('household_id', householdId)
+        .eq('parent_place_id', parentId)
+        .order('sort_order', { ascending: false })
+        .limit(1)
+      sortOrder = ((maxRows as Array<{ sort_order: number }> | null)?.[0]?.sort_order ?? 0) + 1
+    }
     const row = {
       household_id: householdId,
       type: segment.type ?? 'place',
@@ -224,6 +245,7 @@ export async function resolveOrCreatePlace(
       parent_place_id: parentId,
       attributes: segment.attributes ?? {},
       canonical_key: canonicalKey,
+      sort_order: sortOrder,
     }
     const { data: created, error: insertError } = await supabase
       .from('places')

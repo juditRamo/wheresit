@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react'
-import { Check, ChevronLeft, ChevronRight, MoreHorizontal, Package, Plus, X } from 'lucide-react'
+import { DndContext, DragOverlay, PointerSensor, TouchSensor, useSensor, useSensors, type DragStartEvent, type DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { Check, ChevronLeft, MoreHorizontal, Package, Plus, X } from 'lucide-react'
 import { usePlaces, type PlaceWithChildren } from '../hooks/usePlaces'
 import { useStorageEntries } from '../hooks/useStorageEntries'
 import { useLanguage } from '../i18n/LanguageContext'
@@ -12,6 +14,7 @@ import { PlaceEditSheet } from './PlaceEditSheet'
 import { PlaceIconPicker } from './PlaceIconPicker'
 import { LocationActionSheet } from './LocationActionSheet'
 import { ItemEditSheet } from './ItemEditSheet'
+import { SortablePlaceRow, PlaceRowOverlay } from './SortablePlaceRow'
 import './LocationsView.css'
 
 interface LocationsViewProps {
@@ -32,7 +35,7 @@ function flattenTree(tree: PlaceWithChildren[]): PlaceWithChildren[] {
 }
 
 export function LocationsView({ householdId, onNavigateToItems }: LocationsViewProps) {
-  const { placeTree, loading, createPlace, updatePlace, movePlace, deletePlace, refetch, getPlacePath, getDescendantIds } = usePlaces(householdId)
+  const { placeTree, loading, createPlace, updatePlace, movePlace, deletePlace, reorderPlaces, refetch, getPlacePath, getDescendantIds } = usePlaces(householdId)
   const { entries, createEntry, updateEntry, deleteEntry, refetch: refetchEntries } = useStorageEntries(householdId)
   const { language } = useLanguage()
 
@@ -49,6 +52,13 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
   const [movePlace_, setMovePlace] = useState<PlaceWithChildren | null>(null)
   const [addingItemAtPlace, setAddingItemAtPlace] = useState<PlaceWithChildren | null>(null)
   const [editingItem, setEditingItem] = useState<import('../types').StorageEntry | null>(null)
+
+  // Drag-and-drop
+  const [activeDragId, setActiveDragId] = useState<string | null>(null)
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+  )
 
   const allPlacesFlat = useMemo(() => flattenTree(placeTree), [placeTree])
   const placeIdToPlace = useMemo(() => new Map(allPlacesFlat.map((p) => [p.id, p])), [allPlacesFlat])
@@ -221,6 +231,24 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
   const isRoot = path.length === 0
   const animationKey = currentPlace?.id ?? 'root'
 
+  const activeDragPlace = activeDragId ? placeIdToPlace.get(activeDragId) ?? null : null
+  const sortableIds = useMemo(() => visiblePlaces.map((p) => p.id), [visiblePlaces])
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveDragId(event.active.id as string)
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    setActiveDragId(null)
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = visiblePlaces.findIndex((p) => p.id === active.id)
+    const newIndex = visiblePlaces.findIndex((p) => p.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+    const reordered = arrayMove(visiblePlaces, oldIndex, newIndex)
+    reorderPlaces(reordered.map((p) => p.id))
+  }
+
   return (
     <div className="locations-view">
       {/* Header: root or drilled-in nav */}
@@ -380,51 +408,26 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
               key={animationKey}
               className={`locations-view__animate ${direction === 'forward' ? 'locations-view__animate-forward' : 'locations-view__animate-back'}`}
             >
-              <div className="locations-view__place-list">
-                {visiblePlaces.map((place) => {
-                  const TypeIcon = getPlaceIcon(place.icon)
-                  const count = itemCountByPlace(place.id)
-                  const hasChildren = place.children.length > 0
-
-                  return (
-                    <div
-                      key={place.id}
-                      className="locations-view__place-row"
-                      onClick={() => drillIn(place.id)}
-                    >
-                      <span className="locations-view__type-icon">
-                        <TypeIcon size={18} color="var(--gold-primary)" />
-                      </span>
-                      <div className="locations-view__info">
-                        <div className="locations-view__info-text">
-                          <span className="locations-view__label locations-view__label--link">{place.label}</span>
-                          {count > 0 && (
-                            <span className="locations-view__badge">
-                              {count === 1 ? ui('inventory.item_one', language) : ui('inventory.item_other', language, { n: count })}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      {hasChildren && (
-                        <span className="locations-view__places-badge">
-                          {place.children.length}
-                          <ChevronRight size={12} />
-                        </span>
-                      )}
-                      <button
-                        className="locations-view__more-btn"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setActionsPlace(place)
-                        }}
-                        aria-label="Actions"
-                      >
-                        <MoreHorizontal size={18} />
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
+              <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+                  <div className="locations-view__place-list">
+                    {visiblePlaces.map((place) => (
+                      <SortablePlaceRow
+                        key={place.id}
+                        place={place}
+                        itemCount={itemCountByPlace(place.id)}
+                        onDrillIn={drillIn}
+                        onActions={setActionsPlace}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+                <DragOverlay>
+                  {activeDragPlace && (
+                    <PlaceRowOverlay place={activeDragPlace} itemCount={itemCountByPlace(activeDragPlace.id)} />
+                  )}
+                </DragOverlay>
+              </DndContext>
             </div>
           )
         ) : (
@@ -436,51 +439,26 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
             {/* ── Places section ── */}
             <div className="locations-view__section-title">{ui('locations.section_places', language)}</div>
             {visiblePlaces.length > 0 ? (
-              <div className="locations-view__place-list">
-                {visiblePlaces.map((place) => {
-                  const TypeIcon = getPlaceIcon(place.icon)
-                  const count = itemCountByPlace(place.id)
-                  const hasChildren = place.children.length > 0
-
-                  return (
-                    <div
-                      key={place.id}
-                      className="locations-view__place-row"
-                      onClick={() => drillIn(place.id)}
-                    >
-                      <span className="locations-view__type-icon">
-                        <TypeIcon size={18} color="var(--gold-primary)" />
-                      </span>
-                      <div className="locations-view__info">
-                        <div className="locations-view__info-text">
-                          <span className="locations-view__label locations-view__label--link">{place.label}</span>
-                          {count > 0 && (
-                            <span className="locations-view__badge">
-                              {count === 1 ? ui('inventory.item_one', language) : ui('inventory.item_other', language, { n: count })}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      {hasChildren && (
-                        <span className="locations-view__places-badge">
-                          {place.children.length}
-                          <ChevronRight size={12} />
-                        </span>
-                      )}
-                      <button
-                        className="locations-view__more-btn"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setActionsPlace(place)
-                        }}
-                        aria-label="Actions"
-                      >
-                        <MoreHorizontal size={18} />
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
+              <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+                  <div className="locations-view__place-list">
+                    {visiblePlaces.map((place) => (
+                      <SortablePlaceRow
+                        key={place.id}
+                        place={place}
+                        itemCount={itemCountByPlace(place.id)}
+                        onDrillIn={drillIn}
+                        onActions={setActionsPlace}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+                <DragOverlay>
+                  {activeDragPlace && (
+                    <PlaceRowOverlay place={activeDragPlace} itemCount={itemCountByPlace(activeDragPlace.id)} />
+                  )}
+                </DragOverlay>
+              </DndContext>
             ) : (
               <p className="locations-view__empty locations-view__empty--sm">
                 {ui('locations.no_children', language, { name: currentPlace?.label ?? '' })}

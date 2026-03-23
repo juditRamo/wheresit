@@ -32,6 +32,7 @@ export interface Place {
   parent_place_id: string | null
   attributes: Record<string, string>
   canonical_key: string | null
+  sort_order: number
   created_at: string
 }
 

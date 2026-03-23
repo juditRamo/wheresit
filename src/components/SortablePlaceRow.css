@@ -1,0 +1,29 @@
+/* Drag handle */
+.sortable-place-row__drag-handle {
+  width: 28px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: none;
+  cursor: grab;
+  touch-action: none;
+  padding: 0;
+  margin-left: -4px;
+}
+
+.sortable-place-row__drag-handle:active {
+  cursor: grabbing;
+  color: var(--text-secondary);
+}
+
+/* Overlay (floating copy during drag) */
+.sortable-place-row--overlay {
+  background: var(--bg-card);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--gold-border);
+}
