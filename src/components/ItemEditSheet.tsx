@@ -12,6 +12,7 @@ interface ItemEditSheetProps {
   mode: 'create' | 'edit'
   entry?: StorageEntry | null
   householdId: string
+  initialPlaceId?: string
   onSave: (data: {
     item_name: string
     location_description: string
@@ -22,15 +23,17 @@ interface ItemEditSheetProps {
   onClose: () => void
 }
 
-export function ItemEditSheet({ mode, entry, householdId, onSave, onDelete, onClose }: ItemEditSheetProps) {
+export function ItemEditSheet({ mode, entry, householdId, initialPlaceId, onSave, onDelete, onClose }: ItemEditSheetProps) {
   const { language } = useLanguage()
   const { placeTree, getPlacePath } = usePlaces(householdId)
   const [itemName, setItemName] = useState(entry?.item_name ?? '')
-  const [placeId, setPlaceId] = useState(entry?.place_id ?? '')
+  const [placeId, setPlaceId] = useState(entry?.place_id ?? initialPlaceId ?? '')
   const [locationText, setLocationText] = useState(entry?.place_id ? '' : (entry?.location_description ?? ''))
   const [photoPath, setPhotoPath] = useState<string | null>(entry?.photo_path ?? null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showPlacePicker, setShowPlacePicker] = useState(mode === 'create' || !entry?.place_id)
+  const [showPlacePicker, setShowPlacePicker] = useState(
+    initialPlaceId ? false : (mode === 'create' || !entry?.place_id)
+  )
 
   function getLocationDescription(): string {
     if (placeId) {

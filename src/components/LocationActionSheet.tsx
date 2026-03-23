@@ -1,4 +1,4 @@
-import { Plus, Pencil, Copy, MapPinPen, Trash2 } from 'lucide-react'
+import { Plus, Package, Pencil, Copy, MapPinPen, Trash2 } from 'lucide-react'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
 import type { PlaceWithChildren } from '../hooks/usePlaces'
@@ -6,6 +6,7 @@ import './LocationActionSheet.css'
 
 interface LocationActionSheetProps {
   place: PlaceWithChildren
+  onAddItem: () => void
   onAddChild: () => void
   onEdit: () => void
   onDuplicate: () => void
@@ -16,6 +17,7 @@ interface LocationActionSheetProps {
 
 export function LocationActionSheet({
   place,
+  onAddItem,
   onAddChild,
   onEdit,
   onDuplicate,
@@ -34,6 +36,10 @@ export function LocationActionSheet({
         </div>
         <div className="action-sheet__title">{place.label}</div>
         <div className="action-sheet__options">
+          <button className="action-sheet__option" onClick={onAddItem}>
+            <Package size={18} />
+            <span>{ui('locations.add_item_here', language)}</span>
+          </button>
           <button className="action-sheet__option" onClick={onAddChild}>
             <Plus size={18} />
             <span>{ui('locations.add_child', language)}</span>

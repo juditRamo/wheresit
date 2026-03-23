@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Check, ChevronLeft, ChevronRight, MoreHorizontal, Plus, X } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, MoreHorizontal, Package, Plus, X } from 'lucide-react'
 import { usePlaces, type PlaceWithChildren } from '../hooks/usePlaces'
 import { useStorageEntries } from '../hooks/useStorageEntries'
 import { useLanguage } from '../i18n/LanguageContext'
@@ -11,6 +11,7 @@ import { PlaceDrillDown } from './PlaceDrillDown'
 import { PlaceEditSheet } from './PlaceEditSheet'
 import { PlaceIconPicker } from './PlaceIconPicker'
 import { LocationActionSheet } from './LocationActionSheet'
+import { ItemEditSheet } from './ItemEditSheet'
 import './LocationsView.css'
 
 interface LocationsViewProps {
@@ -32,7 +33,7 @@ function flattenTree(tree: PlaceWithChildren[]): PlaceWithChildren[] {
 
 export function LocationsView({ householdId, onNavigateToItems }: LocationsViewProps) {
   const { placeTree, loading, createPlace, updatePlace, movePlace, deletePlace, refetch, getPlacePath, getDescendantIds } = usePlaces(householdId)
-  const { entries } = useStorageEntries(householdId)
+  const { entries, createEntry, updateEntry, deleteEntry, refetch: refetchEntries } = useStorageEntries(householdId)
   const { language } = useLanguage()
 
   // Drill-down navigation state
@@ -46,6 +47,8 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
   const [editing, setEditing] = useState<PlaceWithChildren | null>(null)
   const [actionsPlace, setActionsPlace] = useState<PlaceWithChildren | null>(null)
   const [movePlace_, setMovePlace] = useState<PlaceWithChildren | null>(null)
+  const [addingItemAtPlace, setAddingItemAtPlace] = useState<PlaceWithChildren | null>(null)
+  const [editingItem, setEditingItem] = useState<import('../types').StorageEntry | null>(null)
 
   const allPlacesFlat = useMemo(() => flattenTree(placeTree), [placeTree])
   const placeIdToPlace = useMemo(() => new Map(allPlacesFlat.map((p) => [p.id, p])), [allPlacesFlat])
@@ -174,6 +177,47 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
     }
   }
 
+  // Items at the currently drilled-in place (direct, not descendants)
+  const currentPlaceItems = useMemo(() => {
+    if (!currentPlace) return []
+    return entries.filter((e) => e.place_id === currentPlace.id)
+  }, [entries, currentPlace])
+
+  async function handleItemSave(data: { item_name: string; location_description: string; photo_path?: string | null; place_id?: string | null }) {
+    if (editingItem) {
+      const prev = editingItem
+      const moved = data.place_id !== prev.place_id || data.location_description !== prev.location_description
+      await updateEntry(prev.id, data)
+      recordHistoryEvent(householdId, moved ? 'move_object' : 'edit_object', 'storage_entry', prev.id, {
+        item_name: data.item_name,
+        location_description: data.location_description,
+        ...(moved ? { from_location: prev.location_description } : {}),
+      })
+      setEditingItem(null)
+    } else if (addingItemAtPlace) {
+      const { data: created } = await createEntry(data)
+      if (created) {
+        recordHistoryEvent(householdId, 'add_object', 'storage_entry', created.id, {
+          item_name: data.item_name,
+          location_description: data.location_description,
+        })
+      }
+      setAddingItemAtPlace(null)
+    }
+    refetchEntries()
+  }
+
+  async function handleItemDelete() {
+    if (!editingItem) return
+    recordHistoryEvent(householdId, 'delete_object', 'storage_entry', editingItem.id, {
+      item_name: editingItem.item_name,
+      location_description: editingItem.location_description,
+    })
+    await deleteEntry(editingItem.id)
+    setEditingItem(null)
+    refetchEntries()
+  }
+
   const isRoot = path.length === 0
   const animationKey = currentPlace?.id ?? 'root'
 
@@ -269,6 +313,7 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
       {actionsPlace && (
         <LocationActionSheet
           place={actionsPlace}
+          onAddItem={() => { const p = actionsPlace; setActionsPlace(null); setAddingItemAtPlace(p) }}
           onAddChild={() => {
             const place = actionsPlace
             setActionsPlace(null)
@@ -285,6 +330,19 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
           onMove={() => { const p = actionsPlace; setActionsPlace(null); setMovePlace(p) }}
           onDelete={() => { const p = actionsPlace; setActionsPlace(null); handleDelete(p) }}
           onClose={() => setActionsPlace(null)}
+        />
+      )}
+
+      {/* Item edit/add sheet */}
+      {(addingItemAtPlace || editingItem) && (
+        <ItemEditSheet
+          mode={editingItem ? 'edit' : 'create'}
+          entry={editingItem}
+          householdId={householdId}
+          initialPlaceId={addingItemAtPlace?.id}
+          onSave={handleItemSave}
+          onDelete={editingItem ? handleItemDelete : undefined}
+          onClose={() => { setAddingItemAtPlace(null); setEditingItem(null) }}
         />
       )}
 
@@ -307,99 +365,170 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
         </div>
       )}
 
-      {/* Body: place list */}
+      {/* Body */}
       <div className="locations-view__body">
         {loading && placeTree.length === 0 ? (
           <p className="locations-view__empty">Loading…</p>
-        ) : visiblePlaces.length === 0 ? (
-          <div className="locations-view__empty-state">
-            <p className="locations-view__empty">
-              {isRoot
-                ? ui('locations.empty', language)
-                : ui('locations.no_children', language, { name: currentPlace?.label ?? '' })}
-            </p>
-            {!isRoot && !adding && (
-              <button
-                className="locations-view__add-btn"
-                onClick={() => { setAdding(true); setNewIcon('map-pin'); setNewLabel('') }}
-              >
-                <Plus size={16} />
-                {ui('locations.add_inside', language, { name: currentPlace?.label ?? '' })}
-              </button>
-            )}
-          </div>
+        ) : isRoot ? (
+          /* Root level: just show top-level places */
+          visiblePlaces.length === 0 ? (
+            <div className="locations-view__empty-state">
+              <p className="locations-view__empty">{ui('locations.empty', language)}</p>
+            </div>
+          ) : (
+            <div
+              key={animationKey}
+              className={`locations-view__animate ${direction === 'forward' ? 'locations-view__animate-forward' : 'locations-view__animate-back'}`}
+            >
+              <div className="locations-view__place-list">
+                {visiblePlaces.map((place) => {
+                  const TypeIcon = getPlaceIcon(place.icon)
+                  const count = itemCountByPlace(place.id)
+                  const hasChildren = place.children.length > 0
+
+                  return (
+                    <div
+                      key={place.id}
+                      className="locations-view__place-row"
+                      onClick={() => drillIn(place.id)}
+                    >
+                      <span className="locations-view__type-icon">
+                        <TypeIcon size={18} color="var(--gold-primary)" />
+                      </span>
+                      <div className="locations-view__info">
+                        <div className="locations-view__info-text">
+                          <span className="locations-view__label locations-view__label--link">{place.label}</span>
+                          {count > 0 && (
+                            <span className="locations-view__badge">
+                              {count === 1 ? ui('inventory.item_one', language) : ui('inventory.item_other', language, { n: count })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {hasChildren && (
+                        <span className="locations-view__places-badge">
+                          {place.children.length}
+                          <ChevronRight size={12} />
+                        </span>
+                      )}
+                      <button
+                        className="locations-view__more-btn"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setActionsPlace(place)
+                        }}
+                        aria-label="Actions"
+                      >
+                        <MoreHorizontal size={18} />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
         ) : (
+          /* Drilled-in level: two sections — Places + Items */
           <div
             key={animationKey}
             className={`locations-view__animate ${direction === 'forward' ? 'locations-view__animate-forward' : 'locations-view__animate-back'}`}
           >
-            <div className="locations-view__place-list">
-              {visiblePlaces.map((place) => {
-                const TypeIcon = getPlaceIcon(place.icon)
-                const count = itemCountByPlace(place.id)
-                const hasChildren = place.children.length > 0
+            {/* ── Places section ── */}
+            <div className="locations-view__section-title">{ui('locations.section_places', language)}</div>
+            {visiblePlaces.length > 0 ? (
+              <div className="locations-view__place-list">
+                {visiblePlaces.map((place) => {
+                  const TypeIcon = getPlaceIcon(place.icon)
+                  const count = itemCountByPlace(place.id)
+                  const hasChildren = place.children.length > 0
 
-                return (
-                  <div
-                    key={place.id}
-                    className="locations-view__place-row"
-                    onClick={() => hasChildren ? drillIn(place.id) : undefined}
-                  >
-                    <span className="locations-view__type-icon">
-                      <TypeIcon size={18} color="var(--gold-primary)" />
-                    </span>
-                    <div className="locations-view__info">
-                      <div className="locations-view__info-text">
-                        {onNavigateToItems ? (
-                          <button
-                            type="button"
-                            className="locations-view__label locations-view__label--link"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onNavigateToItems({ place_id: place.id, place_label: place.label })
-                            }}
-                          >
-                            {place.label}
-                          </button>
-                        ) : (
-                          <span className="locations-view__label">{place.label}</span>
-                        )}
-                        {count > 0 && (
-                          <span className="locations-view__badge">
-                            {count === 1 ? ui('inventory.item_one', language) : ui('inventory.item_other', language, { n: count })}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {hasChildren && (
-                      <span className="locations-view__places-badge">
-                        {place.children.length}
-                        <ChevronRight size={12} />
-                      </span>
-                    )}
-                    <button
-                      className="locations-view__more-btn"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setActionsPlace(place)
-                      }}
-                      aria-label="Actions"
+                  return (
+                    <div
+                      key={place.id}
+                      className="locations-view__place-row"
+                      onClick={() => drillIn(place.id)}
                     >
-                      <MoreHorizontal size={18} />
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* Add inside button (when drilled in and not already adding) */}
-            {!isRoot && !adding && (
+                      <span className="locations-view__type-icon">
+                        <TypeIcon size={18} color="var(--gold-primary)" />
+                      </span>
+                      <div className="locations-view__info">
+                        <div className="locations-view__info-text">
+                          <span className="locations-view__label locations-view__label--link">{place.label}</span>
+                          {count > 0 && (
+                            <span className="locations-view__badge">
+                              {count === 1 ? ui('inventory.item_one', language) : ui('inventory.item_other', language, { n: count })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {hasChildren && (
+                        <span className="locations-view__places-badge">
+                          {place.children.length}
+                          <ChevronRight size={12} />
+                        </span>
+                      )}
+                      <button
+                        className="locations-view__more-btn"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setActionsPlace(place)
+                        }}
+                        aria-label="Actions"
+                      >
+                        <MoreHorizontal size={18} />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="locations-view__empty locations-view__empty--sm">
+                {ui('locations.no_children', language, { name: currentPlace?.label ?? '' })}
+              </p>
+            )}
+            {!adding && (
               <button
                 className="locations-view__add-inside-btn"
                 onClick={() => { setAdding(true); setNewIcon('map-pin'); setNewLabel('') }}
               >
                 <Plus size={14} />
                 {ui('locations.add_inside', language, { name: currentPlace?.label ?? '' })}
+              </button>
+            )}
+
+            {/* ── Items section ── */}
+            <div className="locations-view__section-title">{ui('locations.section_items', language)}</div>
+            {currentPlaceItems.length > 0 ? (
+              <div className="locations-view__items-list">
+                {currentPlaceItems.map((item) => (
+                  <button
+                    key={item.id}
+                    className="locations-view__items-row"
+                    onClick={() => setEditingItem(item)}
+                  >
+                    <Package size={14} />
+                    <span className="locations-view__items-name">{item.item_name}</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="locations-view__empty locations-view__empty--sm">
+                {ui('locations.no_items', language, { name: currentPlace?.label ?? '' })}
+              </p>
+            )}
+            <button
+              className="locations-view__add-inside-btn"
+              onClick={() => currentPlace && setAddingItemAtPlace(currentPlace)}
+            >
+              <Package size={14} />
+              {ui('locations.add_item_here', language)}
+            </button>
+            {currentPlaceItems.length > 10 && onNavigateToItems && (
+              <button
+                className="locations-view__items-viewall"
+                onClick={() => onNavigateToItems({ place_id: currentPlace!.id, place_label: currentPlace!.label })}
+              >
+                {ui('locations.view_all_items', language)} →
               </button>
             )}
           </div>
