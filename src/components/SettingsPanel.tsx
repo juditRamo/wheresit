@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useBackHandler } from '../hooks/useBackHandler'
 import { X, Copy, Check, LogOut, Pencil } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { Clipboard } from '@capacitor/clipboard'
@@ -37,6 +38,7 @@ const ADD_NEW_SENTINEL = '__add_new__'
 export function SettingsPanel({ user, profile, updateProfile, household, households, selectedId, onSelectHousehold, onCreateHousehold, onJoinHousehold, onUpdateHouseholdName, onClose }: SettingsPanelProps) {
   const { language, setLanguage } = useLanguage()
   const { theme, setTheme } = useTheme()
+  useBackHandler(true, onClose)
   const [copied, setCopied] = useState(false)
   const [members, setMembers] = useState<MemberInfo[]>([])
   const [editProfileOpen, setEditProfileOpen] = useState(false)

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useBackHandler } from '../hooks/useBackHandler'
 import {
   Search,
   RefreshCw,
@@ -125,6 +126,10 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
   const [placeChipFilter, setPlaceChipFilter] = useState<string | null>(null)
   const [showActivity, setShowActivity] = useState(false)
   const [showForgotten, setShowForgotten] = useState(false)
+
+  useBackHandler(showActivity, () => setShowActivity(false))
+  useBackHandler(!!editingEntry, () => setEditingEntry(null))
+  useBackHandler(showAddSheet, () => setShowAddSheet(false))
 
   // Apply location filter if set
   let filtered = filter

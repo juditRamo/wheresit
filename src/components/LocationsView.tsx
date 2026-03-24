@@ -1,4 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { useBackHandler } from '../hooks/useBackHandler'
+import { pushHandler, removeHandler } from '../lib/backNavigation'
 import { DndContext, DragOverlay, PointerSensor, TouchSensor, useSensor, useSensors, type DragStartEvent, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Check, ChevronLeft, MoreHorizontal, Package, Plus, X } from 'lucide-react'
@@ -83,6 +85,65 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
     // Use setTimeout to avoid setState during render
     setTimeout(() => setPath(validPath), 0)
   }
+
+  // Back-button handling for drill-down navigation
+  const drillHandlerIdsRef = useRef<string[]>([])
+  const fromPopstateRef = useRef(false)
+  const prevPathLenRef = useRef(0)
+
+  useEffect(() => {
+    const prevLen = prevPathLenRef.current
+    const currLen = path.length
+    prevPathLenRef.current = currLen
+
+    if (currLen > prevLen) {
+      // Drilled deeper — push new handlers
+      for (let i = prevLen; i < currLen; i++) {
+        const id = `drill-${path[i]}-${Date.now()}-${i}`
+        drillHandlerIdsRef.current.push(id)
+        pushHandler(id, () => {
+          fromPopstateRef.current = true
+          setDirection('back')
+          setPath((prev) => prev.slice(0, -1))
+          setAdding(false)
+        })
+      }
+    } else if (currLen < prevLen) {
+      // Went back — remove extra handlers
+      const countToRemove = prevLen - currLen
+      if (fromPopstateRef.current) {
+        // Triggered by popstate: handler already popped by coordinator for one level
+        fromPopstateRef.current = false
+        const extras = drillHandlerIdsRef.current.splice(currLen)
+        // Skip first (already popped), remove rest
+        for (let i = 1; i < extras.length; i++) {
+          removeHandler(extras[i])
+        }
+      } else {
+        // Programmatic (goBack/goToLevel/goToRoot) — remove all extra handlers
+        const extras = drillHandlerIdsRef.current.splice(currLen, countToRemove)
+        for (const id of extras) {
+          removeHandler(id)
+        }
+      }
+    }
+  }, [path])
+
+  // Cleanup all drill handlers on unmount
+  useEffect(() => {
+    return () => {
+      for (const id of drillHandlerIdsRef.current) {
+        removeHandler(id)
+      }
+      drillHandlerIdsRef.current = []
+    }
+  }, [])
+
+  // Back handlers for modals/sheets
+  useBackHandler(!!actionsPlace, () => setActionsPlace(null))
+  useBackHandler(!!editing, () => setEditing(null))
+  useBackHandler(!!movePlace_, () => setMovePlace(null))
+  useBackHandler(!!(addingItemAtPlace || editingItem), () => { setAddingItemAtPlace(null); setEditingItem(null) })
 
   function drillIn(placeId: string) {
     setDirection('forward')

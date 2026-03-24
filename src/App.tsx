@@ -1,4 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { initBackNavigation } from './lib/backNavigation'
+import { useBackHandler } from './hooks/useBackHandler'
 import { useAuth } from './hooks/useAuth'
 import { useHousehold } from './hooks/useHousehold'
 import { useProfile } from './hooks/useProfile'
@@ -38,6 +40,10 @@ function AppInner() {
   const [activeTab, setActiveTab] = useState<NavTab>('items')
   const [itemsFilter, setItemsFilter] = useState<LocationRef | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+
+  // Initialize back-button navigation
+  useEffect(() => { initBackNavigation() }, [])
+  useBackHandler(settingsOpen, () => setSettingsOpen(false))
 
   // Sync theme/language from profile when profile loads (once per user)
   useEffect(() => {
