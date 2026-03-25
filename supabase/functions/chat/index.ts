@@ -358,7 +358,7 @@ Deno.serve(async (req) => {
             entity_type: 'storage_entry',
             entity_id: existing.id,
             payload: {
-              item_name: itemName,
+              item_name: originalItemName,
               from: {
                 location_description: existing.location_description,
                 place_id: existing.place_id ?? undefined,
@@ -383,7 +383,7 @@ Deno.serve(async (req) => {
           .from('storage_entries')
           .insert({
             household_id: householdId,
-            item_name: itemName,
+            item_name: originalItemName,
             ...writeData,
           })
           .select('id')

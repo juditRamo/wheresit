@@ -48,7 +48,7 @@ export function ItemEditSheet({ mode, entry, householdId, initialPlaceId, onSave
   function handleSave() {
     if (!itemName.trim()) return
     onSave({
-      item_name: itemName.trim().toLowerCase(),
+      item_name: itemName.trim(),
       location_description: getLocationDescription(),
       photo_path: photoPath,
       place_id: placeId || null,
