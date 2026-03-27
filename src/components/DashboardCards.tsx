@@ -1,26 +1,22 @@
-import { Archive, Home, Clock, AlertTriangle } from 'lucide-react'
+import { Archive, MapPin, Camera, Clock } from 'lucide-react'
 import { ui } from '../i18n/ui'
 import type { Lang } from '../i18n/picklists'
 import './DashboardCards.css'
 
 interface DashboardStats {
   totalItems: number
-  topPlaces: [string, number][]
-  mostPopulatedPlace: string | null
-  forgottenCount: number
+  placesUsed: number
+  withPhotos: number
   recentlyMovedCount: number
 }
 
 interface DashboardCardsProps {
   stats: DashboardStats
   language: Lang
-  onForgottenClick?: () => void
 }
 
-export function DashboardCards({ stats, language, onForgottenClick }: DashboardCardsProps) {
+export function DashboardCards({ stats, language }: DashboardCardsProps) {
   if (stats.totalItems === 0) return null
-
-  const placeLabel = stats.mostPopulatedPlace ?? '—'
 
   return (
     <div className="dashboard">
@@ -36,27 +32,21 @@ export function DashboardCards({ stats, language, onForgottenClick }: DashboardC
 
       <div className="dashboard__card">
         <div className="dashboard__card-icon">
-          <Home size={16} color="var(--gold-primary)" />
+          <MapPin size={16} color="var(--gold-primary)" />
         </div>
         <div className="dashboard__card-info">
-          <span className="dashboard__card-value">{placeLabel}</span>
-          <span className="dashboard__card-label">{ui('dash.most_used_room', language)}</span>
+          <span className="dashboard__card-value">{stats.placesUsed}</span>
+          <span className="dashboard__card-label">{ui('dash.places_used', language)}</span>
         </div>
       </div>
 
-      <div
-        className="dashboard__card dashboard__card--clickable"
-        onClick={onForgottenClick}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onForgottenClick?.() }}
-      >
+      <div className="dashboard__card">
         <div className="dashboard__card-icon">
-          <AlertTriangle size={16} color="var(--gold-primary)" />
+          <Camera size={16} color="var(--gold-primary)" />
         </div>
         <div className="dashboard__card-info">
-          <span className="dashboard__card-value">{stats.forgottenCount}</span>
-          <span className="dashboard__card-label">{ui('dash.forgotten', language)}</span>
+          <span className="dashboard__card-value">{stats.withPhotos}</span>
+          <span className="dashboard__card-label">{ui('dash.with_photos', language)}</span>
         </div>
       </div>
 

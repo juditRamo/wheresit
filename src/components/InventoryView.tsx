@@ -125,7 +125,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
   const [showAddSheet, setShowAddSheet] = useState(false)
   const [placeChipFilter, setPlaceChipFilter] = useState<string | null>(null)
   const [showActivity, setShowActivity] = useState(false)
-  const [showForgotten, setShowForgotten] = useState(false)
+
 
   useBackHandler(showActivity, () => setShowActivity(false))
   useBackHandler(!!editingEntry, () => setEditingEntry(null))
@@ -161,12 +161,6 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
   // Apply chip filters
   if (placeChipFilter) {
     filtered = filtered.filter((e) => getRootPlaceLabel(e, places) === placeChipFilter)
-  }
-
-  // Apply forgotten filter
-  if (showForgotten) {
-    const forgottenIds = new Set(stats.forgottenEntries.map((e) => e.id))
-    filtered = filtered.filter((e) => forgottenIds.has(e.id))
   }
 
   // Compute chip options from all entries (before chip filtering)
@@ -284,7 +278,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
 
       {/* Dashboard cards (when no filter active) */}
       {!filter && !searchQuery && (
-        <DashboardCards stats={stats} language={language} onForgottenClick={() => setShowForgotten(true)} />
+        <DashboardCards stats={stats} language={language} />
       )}
 
       {/* Filter indicator */}
@@ -301,19 +295,6 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
             })}
           </span>
           <button className="inventory__filter-clear" onClick={onClearFilter}>
-            <X size={12} />
-            {ui('inventory.clear_filter', language)}
-          </button>
-        </div>
-      )}
-
-      {/* Forgotten items filter bar */}
-      {showForgotten && (
-        <div className="inventory__filter-bar">
-          <span className="inventory__filter-text">
-            {ui('dash.showing_forgotten', language)}
-          </span>
-          <button className="inventory__filter-clear" onClick={() => setShowForgotten(false)}>
             <X size={12} />
             {ui('inventory.clear_filter', language)}
           </button>

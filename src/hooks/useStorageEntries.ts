@@ -85,21 +85,11 @@ export function useStorageEntries(householdId: string | null) {
     const DAY = 86400000
     const totalItems = entries.length
 
-    // Items per location (first segment of path or "other")
-    const locationCounts: Record<string, number> = {}
-    for (const e of entries) {
-      const key = e.location_description?.split(' › ')[0] ?? 'other'
-      locationCounts[key] = (locationCounts[key] ?? 0) + 1
-    }
-    const topPlaces = Object.entries(locationCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-    const mostPopulatedPlace = topPlaces[0]?.[0] ?? null
+    // Distinct places with items
+    const placesUsed = new Set(entries.map(e => e.place_id).filter(Boolean)).size
 
-    // Forgotten items (not updated in 90+ days)
-    const forgotten = entries.filter(
-      (e) => now - new Date(e.updated_at).getTime() > 90 * DAY
-    )
+    // Items with photos
+    const withPhotos = entries.filter(e => e.photo_path).length
 
     // Recently moved (updated in last 7 days)
     const recentlyMoved = entries.filter(
@@ -108,11 +98,9 @@ export function useStorageEntries(householdId: string | null) {
 
     return {
       totalItems,
-      topPlaces,
-      mostPopulatedPlace,
-      forgottenCount: forgotten.length,
+      placesUsed,
+      withPhotos,
       recentlyMovedCount: recentlyMoved.length,
-      forgottenEntries: forgotten,
     }
   }, [entries])
 
