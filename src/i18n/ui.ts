@@ -84,11 +84,9 @@ const strings: Record<string, { en: string; es: string }> = {
 
   // Dashboard (3.2)
   'dash.total_items': { en: 'Total items', es: 'Total objetos' },
-  'dash.most_used_room': { en: 'Most used place', es: 'Lugar m\u00e1s usado' },
-  'dash.forgotten': { en: 'Forgotten items', es: 'Objetos olvidados' },
-  'dash.forgotten_hint': { en: "items haven't been touched in 90+ days", es: 'objetos sin mover en m\u00e1s de 90 d\u00edas' },
+  'dash.places_used': { en: 'Places used', es: 'Lugares usados' },
+  'dash.with_photos': { en: 'With photos', es: 'Con fotos' },
   'dash.recently_moved': { en: 'Recently moved', es: 'Movidos recientemente' },
-  'dash.showing_forgotten': { en: 'Showing forgotten items (90+ days)', es: 'Mostrando objetos olvidados (90+ d\u00edas)' },
 
   // Activity feed (3.3)
   'activity.title': { en: 'Activity', es: 'Actividad' },
@@ -150,6 +148,8 @@ const strings: Record<string, { en: string; es: string }> = {
   'photo.remove': { en: 'Remove photo', es: 'Quitar foto' },
   'photo.take': { en: 'Take photo', es: 'Tomar foto' },
   'photo.choose': { en: 'Choose from gallery', es: 'Elegir de galer\u00eda' },
+  'photo.upload_error': { en: 'Photo upload failed. Please try again.', es: 'Error al subir la foto. Int\u00e9ntalo de nuevo.' },
+  'photo.uploading': { en: 'Uploading\u2026', es: 'Subiendo\u2026' },
 
   // Locations editor (4.3)
   'locations.title': { en: 'Manage locations', es: 'Gestionar ubicaciones' },

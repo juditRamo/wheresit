@@ -31,6 +31,7 @@ export function ItemEditSheet({ mode, entry, householdId, initialPlaceId, onSave
   const [locationText, setLocationText] = useState(entry?.place_id ? '' : (entry?.location_description ?? ''))
   const [photoPath, setPhotoPath] = useState<string | null>(entry?.photo_path ?? null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [photoUploading, setPhotoUploading] = useState(false)
   const [showPlacePicker, setShowPlacePicker] = useState(
     initialPlaceId ? false : (mode === 'create' || !entry?.place_id)
   )
@@ -173,6 +174,7 @@ export function ItemEditSheet({ mode, entry, householdId, initialPlaceId, onSave
             entryId={entry?.id ?? null}
             photoPath={photoPath}
             onPhotoChange={setPhotoPath}
+            onUploadingChange={setPhotoUploading}
           />
         </div>
 
@@ -186,7 +188,7 @@ export function ItemEditSheet({ mode, entry, householdId, initialPlaceId, onSave
           <button
             className="edit-sheet__btn edit-sheet__btn--primary"
             onClick={handleSave}
-            disabled={!itemName.trim()}
+            disabled={!itemName.trim() || photoUploading}
           >
             <Save size={14} />
             {mode === 'edit' ? ui('edit.save', language) : ui('add.save', language)}

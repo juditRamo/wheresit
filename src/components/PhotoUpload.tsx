@@ -12,15 +12,26 @@ interface PhotoUploadProps {
   entryId: string | null
   photoPath: string | null
   onPhotoChange: (path: string | null) => void
+  onUploadingChange?: (uploading: boolean) => void
 }
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 
 function resizeImage(file: File, maxSize: number): Promise<Blob> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const img = new Image()
     const url = URL.createObjectURL(file)
+    const timeout = setTimeout(() => {
+      URL.revokeObjectURL(url)
+      reject(new Error('Image resize timed out'))
+    }, 10_000)
+    img.onerror = () => {
+      clearTimeout(timeout)
+      URL.revokeObjectURL(url)
+      reject(new Error('Failed to load image'))
+    }
     img.onload = () => {
+      clearTimeout(timeout)
       URL.revokeObjectURL(url)
       let { width, height } = img
       if (width > maxSize || height > maxSize) {
@@ -38,7 +49,13 @@ function resizeImage(file: File, maxSize: number): Promise<Blob> {
       const ctx = canvas.getContext('2d')!
       ctx.drawImage(img, 0, 0, width, height)
       canvas.toBlob(
-        (blob) => resolve(blob!),
+        (blob) => {
+          if (blob) {
+            resolve(blob)
+          } else {
+            reject(new Error('Failed to create image blob'))
+          }
+        },
         'image/jpeg',
         0.8
       )
@@ -56,10 +73,16 @@ function base64ToBlob(base64: string, contentType: string): Blob {
   return new Blob([bytes], { type: contentType })
 }
 
-export function PhotoUpload({ householdId, entryId, photoPath, onPhotoChange }: PhotoUploadProps) {
+export function PhotoUpload({ householdId, entryId, photoPath, onPhotoChange, onUploadingChange }: PhotoUploadProps) {
   const { language } = useLanguage()
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  function setUploadingState(value: boolean) {
+    setUploading(value)
+    onUploadingChange?.(value)
+  }
 
   const photoUrl = photoPath ? `${supabaseUrl}/storage/v1/object/public/item-photos/${photoPath}` : null
 
@@ -67,17 +90,21 @@ export function PhotoUpload({ householdId, entryId, photoPath, onPhotoChange }: 
     const id = entryId ?? crypto.randomUUID()
     const path = `${householdId}/${id}.jpg`
 
-    const { error } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('item-photos')
       .upload(path, blob, { contentType: 'image/jpeg', upsert: true })
 
-    if (!error) {
-      onPhotoChange(path)
+    if (uploadError) {
+      setError(ui('photo.upload_error', language))
+      return
     }
+
+    onPhotoChange(path)
   }
 
   async function handleNativeCapture() {
-    setUploading(true)
+    setUploadingState(true)
+    setError(null)
     try {
       const photo = await Camera.getPhoto({
         quality: 80,
@@ -89,10 +116,13 @@ export function PhotoUpload({ householdId, entryId, photoPath, onPhotoChange }: 
         const blob = base64ToBlob(photo.base64String, 'image/jpeg')
         await uploadBlob(blob)
       }
-    } catch {
-      // User cancelled or permission denied
+    } catch (e) {
+      const msg = e instanceof Error ? e.message.toLowerCase() : ''
+      if (!msg.includes('cancel')) {
+        setError(ui('photo.upload_error', language))
+      }
     } finally {
-      setUploading(false)
+      setUploadingState(false)
     }
   }
 
@@ -100,12 +130,15 @@ export function PhotoUpload({ householdId, entryId, photoPath, onPhotoChange }: 
     const file = e.target.files?.[0]
     if (!file) return
 
-    setUploading(true)
+    setUploadingState(true)
+    setError(null)
     try {
       const resized = await resizeImage(file, 800)
       await uploadBlob(resized)
+    } catch {
+      setError(ui('photo.upload_error', language))
     } finally {
-      setUploading(false)
+      setUploadingState(false)
       if (fileRef.current) fileRef.current.value = ''
     }
   }
@@ -139,9 +172,10 @@ export function PhotoUpload({ householdId, entryId, photoPath, onPhotoChange }: 
           type="button"
         >
           <CameraIcon size={16} />
-          {uploading ? '...' : ui('photo.add', language)}
+          {uploading ? ui('photo.uploading', language) : ui('photo.add', language)}
         </button>
       )}
+      {error && <p className="photo-upload__error">{error}</p>}
       <input
         ref={fileRef}
         type="file"
