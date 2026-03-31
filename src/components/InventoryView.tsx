@@ -119,7 +119,7 @@ function groupByPlace(entries: StorageEntry[], places: Array<{ id: string; label
 }
 
 export function InventoryView({ householdId, filter, onClearFilter }: InventoryViewProps) {
-  const { entries, loading, refetch, updateEntry, deleteEntry, createEntry, stats } = useStorageEntries(householdId)
+  const { entries, loading, refetch, updateEntry, deleteEntry, deletePhoto, createEntry, stats } = useStorageEntries(householdId)
   const { getDescendantIds, getPlaceById, getPlacePath, places } = usePlaces(householdId)
   const { fields: customFields, valuesByEntry, optionLabelMap, getEntryValues, saveEntryValues, createOption } = useCustomFields(householdId)
   const { language } = useLanguage()
@@ -244,6 +244,9 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
       (editingEntry.place_id ?? null) !== (data.place_id ?? null)
     const err = await updateEntry(editingEntry.id, data)
     if (!err?.error) {
+      if (editingEntry.photo_path && data.photo_path === null) {
+        await deletePhoto(editingEntry.photo_path)
+      }
       if (locationChanged) {
         recordHistoryEvent(householdId, 'move_object', 'storage_entry', editingEntry.id, {
           item_name: data.item_name,
@@ -275,7 +278,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
       item_name: editingEntry.item_name,
       last_location_description: editingEntry.location_description || undefined,
     })
-    await deleteEntry(editingEntry.id)
+    await deleteEntry(editingEntry.id, editingEntry.photo_path)
     setEditingEntry(null)
   }
 

@@ -38,7 +38,7 @@ function flattenTree(tree: PlaceWithChildren[]): PlaceWithChildren[] {
 
 export function LocationsView({ householdId, onNavigateToItems }: LocationsViewProps) {
   const { placeTree, loading, createPlace, updatePlace, movePlace, deletePlace, reorderPlaces, refetch, getPlacePath, getDescendantIds } = usePlaces(householdId)
-  const { entries, createEntry, updateEntry, deleteEntry, refetch: refetchEntries } = useStorageEntries(householdId)
+  const { entries, createEntry, updateEntry, deleteEntry, deletePhoto, refetch: refetchEntries } = useStorageEntries(householdId)
   const { language } = useLanguage()
 
   // Drill-down navigation state
@@ -259,6 +259,9 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
       const prev = editingItem
       const moved = data.place_id !== prev.place_id || data.location_description !== prev.location_description
       await updateEntry(prev.id, data)
+      if (prev.photo_path && data.photo_path === null) {
+        await deletePhoto(prev.photo_path)
+      }
       recordHistoryEvent(householdId, moved ? 'move_object' : 'edit_object', 'storage_entry', prev.id, {
         item_name: data.item_name,
         location_description: data.location_description,
@@ -284,7 +287,7 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
       item_name: editingItem.item_name,
       location_description: editingItem.location_description,
     })
-    await deleteEntry(editingItem.id)
+    await deleteEntry(editingItem.id, editingItem.photo_path)
     setEditingItem(null)
     refetchEntries()
   }

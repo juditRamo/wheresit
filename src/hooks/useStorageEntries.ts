@@ -42,8 +42,13 @@ export function useStorageEntries(householdId: string | null) {
     [refetch]
   )
 
+  const deletePhoto = useCallback(async (photoPath: string) => {
+    await supabase.storage.from('item-photos').remove([photoPath])
+  }, [])
+
   const deleteEntry = useCallback(
-    async (id: string) => {
+    async (id: string, photoPath?: string | null) => {
+      if (photoPath) await deletePhoto(photoPath)
       const { error } = await supabase
         .from('storage_entries')
         .delete()
@@ -51,7 +56,7 @@ export function useStorageEntries(householdId: string | null) {
       if (!error) refetch()
       return { error }
     },
-    [refetch]
+    [refetch, deletePhoto]
   )
 
   const createEntry = useCallback(
@@ -104,5 +109,5 @@ export function useStorageEntries(householdId: string | null) {
     }
   }, [entries])
 
-  return { entries, loading, refetch, updateEntry, deleteEntry, createEntry, stats }
+  return { entries, loading, refetch, updateEntry, deleteEntry, deletePhoto, createEntry, stats }
 }
