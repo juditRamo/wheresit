@@ -15,14 +15,17 @@ import {
 } from 'lucide-react'
 import { useStorageEntries } from '../hooks/useStorageEntries'
 import { usePlaces } from '../hooks/usePlaces'
+import { useCustomFields } from '../hooks/useCustomFields'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
 import { getPlaceIcon } from '../lib/placeIcons'
 import { recordHistoryEvent } from '../lib/historyEvents'
-import type { StorageEntry, Place, LocationRef } from '../types'
+import type { StorageEntry, Place, LocationRef, CustomFieldValue } from '../types'
 import { ItemEditSheet } from './ItemEditSheet'
 import { DashboardCards } from './DashboardCards'
 import { ActivityFeed } from './ActivityFeed'
+import { CustomFieldFilters } from './CustomFieldFilters'
+import type { CustomFieldFilter } from './CustomFieldFilters'
 import './InventoryView.css'
 
 interface InventoryViewProps {
@@ -118,6 +121,7 @@ function groupByPlace(entries: StorageEntry[], places: Array<{ id: string; label
 export function InventoryView({ householdId, filter, onClearFilter }: InventoryViewProps) {
   const { entries, loading, refetch, updateEntry, deleteEntry, createEntry, stats } = useStorageEntries(householdId)
   const { getDescendantIds, getPlaceById, getPlacePath, places } = usePlaces(householdId)
+  const { fields: customFields, valuesByEntry, optionLabelMap, getEntryValues, saveEntryValues, createOption } = useCustomFields(householdId)
   const { language } = useLanguage()
   const [activeTab, setActiveTab] = useState<SortTab>('place')
   const [searchQuery, setSearchQuery] = useState('')
@@ -125,6 +129,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
   const [showAddSheet, setShowAddSheet] = useState(false)
   const [placeChipFilter, setPlaceChipFilter] = useState<string | null>(null)
   const [showActivity, setShowActivity] = useState(false)
+  const [customFilters, setCustomFilters] = useState<CustomFieldFilter[]>([])
 
 
   useBackHandler(showActivity, () => setShowActivity(false))
@@ -148,19 +153,64 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
       })
     : entries
 
-  // Apply search query
+  // Apply search query (enhanced with custom field values)
   if (searchQuery) {
     const q = searchQuery.toLowerCase()
-    filtered = filtered.filter(
-      (e) =>
-        e.item_name.toLowerCase().includes(q) ||
-        getLocationDisplay(e, getPlacePath).toLowerCase().includes(q)
-    )
+    filtered = filtered.filter((e) => {
+      if (e.item_name.toLowerCase().includes(q)) return true
+      if (getLocationDisplay(e, getPlacePath).toLowerCase().includes(q)) return true
+      const fvs = valuesByEntry.get(e.id) ?? []
+      for (const fv of fvs) {
+        if (fv.value_text?.toLowerCase().includes(q)) return true
+        if (fv.value_date?.includes(q)) return true
+        if (fv.value_option) {
+          const optLabel = optionLabelMap.get(fv.value_option)
+          if (optLabel?.toLowerCase().includes(q)) return true
+        }
+        if (fv.value_options) {
+          if (fv.value_options.some((o: string) => {
+            const optLabel = optionLabelMap.get(o)
+            return optLabel?.toLowerCase().includes(q)
+          })) return true
+        }
+      }
+      return false
+    })
   }
 
   // Apply chip filters
   if (placeChipFilter) {
     filtered = filtered.filter((e) => getRootPlaceLabel(e, places) === placeChipFilter)
+  }
+
+  // Apply custom field filters
+  if (customFilters.length > 0) {
+    filtered = filtered.filter((e) => {
+      const fvs = valuesByEntry.get(e.id) ?? []
+      return customFilters.every((filter) => {
+        const fv = fvs.find((v: CustomFieldValue) => v.custom_field_id === filter.fieldId)
+        if (!fv) return false
+        if (filter.booleanValue != null) return fv.value_boolean === filter.booleanValue
+        if (filter.numberMin != null || filter.numberMax != null) {
+          if (fv.value_number == null) return false
+          if (filter.numberMin != null && fv.value_number < filter.numberMin) return false
+          if (filter.numberMax != null && fv.value_number > filter.numberMax) return false
+          return true
+        }
+        if (filter.dateFrom != null || filter.dateTo != null) {
+          if (fv.value_date == null) return false
+          if (filter.dateFrom != null && fv.value_date < filter.dateFrom) return false
+          if (filter.dateTo != null && fv.value_date > filter.dateTo) return false
+          return true
+        }
+        if (filter.selectedOptions && filter.selectedOptions.length > 0) {
+          if (fv.value_option) return filter.selectedOptions.includes(fv.value_option)
+          if (fv.value_options) return fv.value_options.some((o: string) => filter.selectedOptions!.includes(o))
+          return false
+        }
+        return true
+      })
+    })
   }
 
   // Compute chip options from all entries (before chip filtering)
@@ -187,7 +237,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
     location_description: string
     photo_path?: string | null
     place_id?: string | null
-  }) {
+  }, fieldValues?: Record<string, unknown>) {
     if (!editingEntry) return
     const locationChanged =
       editingEntry.location_description !== data.location_description ||
@@ -212,6 +262,9 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
           changes: { ...data },
         })
       }
+      if (fieldValues) {
+        await saveCustomFieldValues(editingEntry.id, fieldValues)
+      }
     }
     setEditingEntry(null)
   }
@@ -231,7 +284,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
     location_description: string
     photo_path?: string | null
     place_id?: string | null
-  }) {
+  }, fieldValues?: Record<string, unknown>) {
     const { data: inserted, error } = await createEntry(data)
     if (!error && inserted) {
       recordHistoryEvent(householdId, 'add_object', 'storage_entry', inserted.id, {
@@ -239,8 +292,27 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
         location_description: data.location_description,
         place_id: data.place_id ?? undefined,
       })
+      if (fieldValues) {
+        await saveCustomFieldValues(inserted.id, fieldValues)
+      }
     }
     setShowAddSheet(false)
+  }
+
+  async function saveCustomFieldValues(entryId: string, fieldValues: Record<string, unknown>) {
+    const mapped: Record<string, { value_text?: string | null; value_number?: number | null; value_boolean?: boolean | null; value_option?: string | null; value_options?: string[] | null; value_date?: string | null }> = {}
+    for (const field of customFields) {
+      const val = fieldValues[field.id]
+      const row: typeof mapped[string] = {}
+      if (field.field_type === 'text') row.value_text = (val as string) ?? null
+      else if (field.field_type === 'number') row.value_number = (val as number) ?? null
+      else if (field.field_type === 'boolean') row.value_boolean = val != null ? (val as boolean) : null
+      else if (field.field_type === 'select') row.value_option = (val as string) ?? null
+      else if (field.field_type === 'multiselect') row.value_options = (val as string[]) ?? null
+      else if (field.field_type === 'date') row.value_date = (val as string) ?? null
+      mapped[field.id] = row
+    }
+    await saveEntryValues(entryId, mapped)
   }
 
   return (
@@ -345,6 +417,22 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
         </div>
       )}
 
+      {/* Custom field filters */}
+      {customFields.length > 0 && (
+        <CustomFieldFilters
+          fields={customFields}
+          filters={customFilters}
+          onChange={setCustomFilters}
+        />
+      )}
+
+      {/* Filtered count */}
+      {(customFilters.length > 0 || placeChipFilter || searchQuery) && filtered.length !== entries.length && (
+        <div className="inventory__filtered-count">
+          {ui('cf.filtered_count', language, { n: filtered.length, total: entries.length })}
+        </div>
+      )}
+
       {/* Items List */}
       <div className="inventory__list">
         {sections.map((section) => {
@@ -435,6 +523,9 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
           mode="edit"
           entry={editingEntry}
           householdId={householdId}
+          customFields={customFields}
+          customFieldValues={getEntryValues(editingEntry.id)}
+          onCreateOption={createOption}
           onSave={handleSaveEdit}
           onDelete={handleDeleteEntry}
           onClose={() => setEditingEntry(null)}
@@ -446,6 +537,8 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
         <ItemEditSheet
           mode="create"
           householdId={householdId}
+          customFields={customFields}
+          onCreateOption={createOption}
           onSave={handleCreateEntry}
           onClose={() => setShowAddSheet(false)}
         />

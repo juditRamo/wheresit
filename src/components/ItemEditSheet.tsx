@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { X, Trash2, Save } from 'lucide-react'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
-import type { StorageEntry } from '../types'
+import type { StorageEntry, CustomField, CustomFieldOption, CustomFieldValue } from '../types'
 import { usePlaces } from '../hooks/usePlaces'
 import { PhotoUpload } from './PhotoUpload'
 import { PlaceDrillDown } from './PlaceDrillDown'
+import { CustomFieldInputs } from './CustomFieldInputs'
 import './ItemEditSheet.css'
 
 interface ItemEditSheetProps {
@@ -13,17 +14,20 @@ interface ItemEditSheetProps {
   entry?: StorageEntry | null
   householdId: string
   initialPlaceId?: string
+  customFields?: CustomField[]
+  customFieldValues?: Record<string, CustomFieldValue>
+  onCreateOption?: (fieldId: string, label: string) => Promise<CustomFieldOption | null>
   onSave: (data: {
     item_name: string
     location_description: string
     photo_path?: string | null
     place_id?: string | null
-  }) => void
+  }, fieldValues?: Record<string, unknown>) => void
   onDelete?: () => void
   onClose: () => void
 }
 
-export function ItemEditSheet({ mode, entry, householdId, initialPlaceId, onSave, onDelete, onClose }: ItemEditSheetProps) {
+export function ItemEditSheet({ mode, entry, householdId, initialPlaceId, customFields, customFieldValues, onCreateOption, onSave, onDelete, onClose }: ItemEditSheetProps) {
   const { language } = useLanguage()
   const { placeTree, getPlacePath } = usePlaces(householdId)
   const [itemName, setItemName] = useState(entry?.item_name ?? '')
@@ -35,6 +39,23 @@ export function ItemEditSheet({ mode, entry, householdId, initialPlaceId, onSave
   const [showPlacePicker, setShowPlacePicker] = useState(
     initialPlaceId ? false : (mode === 'create' || !entry?.place_id)
   )
+
+  // Custom field values state: fieldId → value
+  const [cfValues, setCfValues] = useState<Record<string, unknown>>(() => {
+    if (!customFieldValues || !customFields) return {}
+    const initial: Record<string, unknown> = {}
+    for (const f of customFields) {
+      const v = customFieldValues[f.id]
+      if (!v) continue
+      if (f.field_type === 'text') initial[f.id] = v.value_text
+      else if (f.field_type === 'number') initial[f.id] = v.value_number
+      else if (f.field_type === 'boolean') initial[f.id] = v.value_boolean
+      else if (f.field_type === 'select') initial[f.id] = v.value_option
+      else if (f.field_type === 'multiselect') initial[f.id] = v.value_options
+      else if (f.field_type === 'date') initial[f.id] = v.value_date
+    }
+    return initial
+  })
 
   function getLocationDescription(): string {
     if (placeId) {
@@ -53,7 +74,7 @@ export function ItemEditSheet({ mode, entry, householdId, initialPlaceId, onSave
       location_description: getLocationDescription(),
       photo_path: photoPath,
       place_id: placeId || null,
-    })
+    }, cfValues)
   }
 
   function handlePlaceSelect(id: string | null) {
@@ -176,6 +197,15 @@ export function ItemEditSheet({ mode, entry, householdId, initialPlaceId, onSave
             onPhotoChange={setPhotoPath}
             onUploadingChange={setPhotoUploading}
           />
+
+          {customFields && customFields.length > 0 && (
+            <CustomFieldInputs
+              fields={customFields}
+              values={cfValues}
+              onChange={(fieldId, value) => setCfValues(prev => ({ ...prev, [fieldId]: value }))}
+              onCreateOption={onCreateOption}
+            />
+          )}
         </div>
 
         <div className="edit-sheet__actions">

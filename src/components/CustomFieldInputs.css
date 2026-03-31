@@ -1,0 +1,170 @@
+.cf-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Boolean toggle */
+.cf-inputs__bool-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.cf-inputs__bool-btn {
+  flex: 1;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--border-dark);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  background: var(--bg-input);
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 44px;
+}
+
+.cf-inputs__bool-btn--active {
+  color: var(--gold-primary);
+  border-color: var(--gold-primary);
+  background: var(--gold-dim);
+}
+
+/* Custom select dropdown */
+.cf-inputs__select-wrapper {
+  position: relative;
+}
+
+.cf-inputs__select-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border: 1px solid var(--border-dark);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.cf-inputs__select-placeholder {
+  color: var(--text-tertiary);
+}
+
+.cf-inputs__select-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-dark);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  z-index: 50;
+  padding: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.cf-inputs__select-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  min-height: 36px;
+}
+
+.cf-inputs__select-option:hover {
+  background: rgba(201, 169, 98, 0.08);
+}
+
+.cf-inputs__select-option--active {
+  color: var(--gold-primary);
+  font-weight: 600;
+}
+
+.cf-inputs__select-option--add {
+  color: var(--gold-primary);
+  font-weight: 500;
+  border-top: 1px solid var(--border-dark);
+  border-radius: 0 0 6px 6px;
+  margin-top: 2px;
+}
+
+.cf-inputs__select-add-input {
+  padding: 4px;
+}
+
+.cf-inputs__select-add-field {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border: 1px solid var(--gold-primary);
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+/* Multiselect pills */
+.cf-inputs__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cf-inputs__pill {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--border-dark);
+  border-radius: 16px;
+  color: var(--text-secondary);
+  background: var(--bg-input);
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 36px;
+}
+
+.cf-inputs__pill--active {
+  color: var(--gold-primary);
+  border-color: var(--gold-primary);
+  background: var(--gold-dim);
+}
+
+.cf-inputs__pill--add {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-style: dashed;
+  color: var(--gold-primary);
+  background: transparent;
+}
+
+.cf-inputs__pill-add-input {
+  padding: 8px 14px;
+  font-size: 13px;
+  min-height: 36px;
+  border: 1px solid var(--gold-primary);
+  border-radius: 16px;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  width: 120px;
+  box-sizing: border-box;
+}

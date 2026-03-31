@@ -1,0 +1,297 @@
+.cf-manager {
+  margin-top: 8px;
+}
+
+.cf-manager__empty {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin: 0 0 12px;
+}
+
+.cf-manager__field {
+  border: 1px solid var(--border-dark);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.cf-manager__field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  gap: 8px;
+}
+
+.cf-manager__field-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.cf-manager__field-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cf-manager__type-badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--gold-primary);
+  background: rgba(201, 169, 98, 0.1);
+  border: 1px solid rgba(201, 169, 98, 0.25);
+  border-radius: 6px;
+  padding: 2px 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cf-manager__field-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.cf-manager__move-btn {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-dark);
+}
+
+.cf-manager__move-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.cf-manager__move-btn--danger {
+  color: var(--danger);
+  border-color: var(--danger-border);
+}
+
+/* Forms */
+.cf-manager__create-form,
+.cf-manager__edit-form {
+  padding: 12px;
+  border: 1px solid var(--border-dark);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.cf-manager__input {
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border: 1px solid var(--border-dark);
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+.cf-manager__input:focus {
+  border-color: var(--gold-primary);
+}
+
+.cf-manager__input--small {
+  margin-bottom: 0;
+  flex: 1;
+}
+
+.cf-manager__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  margin: 4px 0 6px;
+}
+
+.cf-manager__type-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.cf-manager__type-opt {
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--border-dark);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  min-height: 32px;
+}
+
+.cf-manager__type-opt--active {
+  color: var(--gold-primary);
+  border-color: var(--gold-primary);
+  background: var(--gold-dim);
+}
+
+/* Options */
+.cf-manager__options {
+  margin-bottom: 8px;
+}
+
+.cf-manager__option-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border: 1px solid var(--border-dark);
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
+
+.cf-manager__option-input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+.cf-manager__option-input:focus {
+  background: var(--bg-input);
+  border-radius: 4px;
+}
+
+.cf-manager__option-input--trailing {
+  color: var(--text-tertiary);
+}
+
+.cf-manager__option-row--trailing {
+  border-style: dashed;
+  opacity: 0.7;
+}
+
+.cf-manager__option-row--trailing:focus-within {
+  opacity: 1;
+  border-color: var(--gold-primary);
+}
+
+.cf-manager__option-remove {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  background: transparent;
+  border-radius: 4px;
+}
+
+.cf-manager__option-remove:hover {
+  color: var(--danger);
+}
+
+/* Buttons */
+.cf-manager__form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.cf-manager__btn {
+  min-height: 36px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cf-manager__btn--primary {
+  color: var(--bg-card);
+  background: var(--gold-primary);
+  border: 1px solid var(--gold-primary);
+}
+
+.cf-manager__btn--primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cf-manager__btn--secondary {
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-dark);
+}
+
+.cf-manager__btn--danger {
+  color: var(--danger);
+  background: var(--danger-dim);
+  border: 1px solid var(--danger-border);
+}
+
+.cf-manager__btn--small {
+  min-height: 32px;
+  padding: 6px 10px;
+  color: var(--gold-primary);
+  background: rgba(201, 169, 98, 0.08);
+  border: 1px solid var(--gold-border);
+}
+
+.cf-manager__add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gold-primary);
+  background: rgba(201, 169, 98, 0.08);
+  border: 1px solid var(--gold-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.cf-manager__add-btn:hover {
+  background: rgba(201, 169, 98, 0.15);
+}
+
+/* Delete confirmation */
+.cf-manager__delete-confirm {
+  padding: 12px;
+  text-align: center;
+}
+
+.cf-manager__delete-text {
+  font-size: 12px;
+  color: var(--text-primary);
+  margin: 0 0 12px;
+}
+
+.cf-manager__delete-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}

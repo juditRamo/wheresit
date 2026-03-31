@@ -1,0 +1,234 @@
+.cf-filters {
+  border-bottom: 1px solid var(--border-dark);
+  flex-shrink: 0;
+}
+
+.cf-filters__chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+.cf-filters__chips::-webkit-scrollbar {
+  display: none;
+}
+
+.cf-filters__label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.cf-filters__chip-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.cf-filters__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  min-height: 34px;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--border-dark);
+  border-radius: 16px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cf-filters__chip--active {
+  color: var(--gold-primary);
+  background: rgba(201, 169, 98, 0.1);
+  border-color: var(--gold-primary);
+}
+
+.cf-filters__chip-value {
+  font-weight: 600;
+  margin-left: 2px;
+}
+
+.cf-filters__clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cf-filters__clear:hover {
+  color: var(--text-secondary);
+}
+
+/* Popover */
+.cf-filters__popover {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  min-width: 180px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-dark);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  z-index: 50;
+  padding: 8px;
+}
+
+/* Boolean */
+.cf-filters__bool-group {
+  display: flex;
+  gap: 4px;
+}
+
+.cf-filters__bool-opt {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border-dark);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.cf-filters__bool-opt--active {
+  color: var(--gold-primary);
+  border-color: var(--gold-primary);
+  background: var(--gold-dim);
+}
+
+/* Number */
+.cf-filters__number-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cf-filters__number-input {
+  flex: 1;
+  min-height: 36px;
+  padding: 6px 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border: 1px solid var(--border-dark);
+  border-radius: 6px;
+  width: 70px;
+}
+
+.cf-filters__number-input:focus {
+  border-color: var(--gold-primary);
+}
+
+.cf-filters__range-sep {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+/* Date range */
+.cf-filters__date-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cf-filters__date-input {
+  flex: 1;
+  min-height: 36px;
+  padding: 6px 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border: 1px solid var(--border-dark);
+  border-radius: 6px;
+  width: 100px;
+}
+
+.cf-filters__date-input:focus {
+  border-color: var(--gold-primary);
+}
+
+/* Option list (select/multiselect) */
+.cf-filters__option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.cf-filters__option-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 6px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  border-radius: 4px;
+  min-height: 36px;
+}
+
+.cf-filters__option-item:hover {
+  background: rgba(201, 169, 98, 0.08);
+}
+
+.cf-filters__option-item input[type="checkbox"] {
+  accent-color: var(--gold-primary);
+  width: 16px;
+  height: 16px;
+}
+
+/* Active filter tags */
+.cf-filters__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 16px 8px;
+}
+
+.cf-filters__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--gold-primary);
+  background: rgba(201, 169, 98, 0.1);
+  border: 1px solid rgba(201, 169, 98, 0.25);
+  border-radius: 6px;
+}
+
+.cf-filters__tag-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--gold-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}

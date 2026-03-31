@@ -10,6 +10,8 @@ import { ui } from '../i18n/ui'
 import type { Household, Profile } from '../types'
 import type { User as AuthUser } from '@supabase/supabase-js'
 import type { ProfileUpdate } from '../hooks/useProfile'
+import { useCustomFields } from '../hooks/useCustomFields'
+import { CustomFieldsManager } from './CustomFieldsManager'
 import './SettingsPanel.css'
 
 interface SettingsPanelProps {
@@ -38,6 +40,7 @@ const ADD_NEW_SENTINEL = '__add_new__'
 export function SettingsPanel({ user, profile, updateProfile, household, households, selectedId, onSelectHousehold, onCreateHousehold, onJoinHousehold, onUpdateHouseholdName, onClose }: SettingsPanelProps) {
   const { language, setLanguage } = useLanguage()
   const { theme, setTheme } = useTheme()
+  const { fields: customFields, createField, updateField, deleteField, reorderFields, createOption, updateOption, deleteOption } = useCustomFields(household.id)
   useBackHandler(true, onClose)
   const [copied, setCopied] = useState(false)
   const [members, setMembers] = useState<MemberInfo[]>([])
@@ -392,7 +395,22 @@ export function SettingsPanel({ user, profile, updateProfile, household, househo
           </div>
         </div>
 
-        {/* 3. User Settings */}
+        {/* 3. Custom Fields */}
+        <div className="settings-panel__section">
+          <h3 className="settings-panel__section-title">{ui('cf.title', language)}</h3>
+          <CustomFieldsManager
+            fields={customFields}
+            onCreateField={createField}
+            onUpdateField={updateField}
+            onDeleteField={deleteField}
+            onReorderFields={reorderFields}
+            onCreateOption={createOption}
+            onUpdateOption={updateOption}
+            onDeleteOption={deleteOption}
+          />
+        </div>
+
+        {/* 4. User Settings */}
         <div className="settings-panel__section settings-panel__section--user-settings">
           <h3 className="settings-panel__section-title">{ui('settings.user_settings', language)}</h3>
           <label className="settings-panel__label">{ui('settings.theme', language)}</label>

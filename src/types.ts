@@ -91,6 +91,40 @@ export interface PendingPlaceMatch {
   confidence: 'low' | 'medium'
 }
 
+export type CustomFieldType = 'text' | 'number' | 'boolean' | 'select' | 'multiselect' | 'date'
+
+export interface CustomFieldOption {
+  id: string
+  custom_field_id: string
+  household_id: string
+  label: string
+  sort_order: number
+  created_at: string
+}
+
+export interface CustomField {
+  id: string
+  household_id: string
+  name: string
+  field_type: CustomFieldType
+  options: CustomFieldOption[]
+  sort_order: number
+  created_at: string
+}
+
+export interface CustomFieldValue {
+  id: string
+  storage_entry_id: string
+  custom_field_id: string
+  household_id: string
+  value_text: string | null
+  value_number: number | null
+  value_boolean: boolean | null
+  value_option: string | null
+  value_options: string[] | null
+  value_date: string | null
+}
+
 export type ChatMessageRole = 'user' | 'assistant'
 
 export interface LocationRef {
