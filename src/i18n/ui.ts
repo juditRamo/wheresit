@@ -82,12 +82,6 @@ const strings: Record<string, { en: string; es: string }> = {
   'search.no_results': { en: 'No results', es: 'Sin resultados' },
   'search.filter_room': { en: 'Filter by place', es: 'Filtrar por lugar' },
 
-  // Dashboard (3.2)
-  'dash.total_items': { en: 'Total items', es: 'Total objetos' },
-  'dash.places_used': { en: 'Places used', es: 'Lugares usados' },
-  'dash.with_photos': { en: 'With photos', es: 'Con fotos' },
-  'dash.recently_moved': { en: 'Recently moved', es: 'Movidos recientemente' },
-
   // Activity feed (3.3)
   'activity.title': { en: 'Activity', es: 'Actividad' },
   'activity.moved': { en: '{user} moved {item} to {location}', es: '{user} movi\u00f3 {item} a {location}' },

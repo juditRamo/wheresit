@@ -22,7 +22,6 @@ import { getPlaceIcon } from '../lib/placeIcons'
 import { recordHistoryEvent } from '../lib/historyEvents'
 import type { StorageEntry, Place, LocationRef, CustomFieldValue } from '../types'
 import { ItemEditSheet } from './ItemEditSheet'
-import { DashboardCards } from './DashboardCards'
 import { ActivityFeed } from './ActivityFeed'
 import { CustomFieldFilters } from './CustomFieldFilters'
 import type { CustomFieldFilter } from './CustomFieldFilters'
@@ -119,7 +118,7 @@ function groupByPlace(entries: StorageEntry[], places: Array<{ id: string; label
 }
 
 export function InventoryView({ householdId, filter, onClearFilter }: InventoryViewProps) {
-  const { entries, loading, refetch, updateEntry, deleteEntry, deletePhoto, createEntry, stats } = useStorageEntries(householdId)
+  const { entries, loading, refetch, updateEntry, deleteEntry, deletePhoto, createEntry } = useStorageEntries(householdId)
   const { getDescendantIds, getPlaceById, getPlacePath, places } = usePlaces(householdId)
   const { fields: customFields, valuesByEntry, optionLabelMap, getEntryValues, saveEntryValues, createOption } = useCustomFields(householdId)
   const { language } = useLanguage()
@@ -350,11 +349,6 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
           </button>
         </div>
       </div>
-
-      {/* Dashboard cards (when no filter active) */}
-      {!filter && !searchQuery && (
-        <DashboardCards stats={stats} language={language} />
-      )}
 
       {/* Filter indicator */}
       {filter && (

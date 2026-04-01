@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
 import type { StorageEntry } from '../types'
 
@@ -84,30 +84,5 @@ export function useStorageEntries(householdId: string | null) {
     [householdId, refetch]
   )
 
-  // Computed stats for dashboard
-  const stats = useMemo(() => {
-    const now = Date.now()
-    const DAY = 86400000
-    const totalItems = entries.length
-
-    // Distinct places with items
-    const placesUsed = new Set(entries.map(e => e.place_id).filter(Boolean)).size
-
-    // Items with photos
-    const withPhotos = entries.filter(e => e.photo_path).length
-
-    // Recently moved (updated in last 7 days)
-    const recentlyMoved = entries.filter(
-      (e) => now - new Date(e.updated_at).getTime() < 7 * DAY
-    )
-
-    return {
-      totalItems,
-      placesUsed,
-      withPhotos,
-      recentlyMovedCount: recentlyMoved.length,
-    }
-  }, [entries])
-
-  return { entries, loading, refetch, updateEntry, deleteEntry, deletePhoto, createEntry, stats }
+  return { entries, loading, refetch, updateEntry, deleteEntry, deletePhoto, createEntry }
 }
