@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../supabaseClient'
+import { useLanguage } from '../i18n/LanguageContext'
+import { ui } from '../i18n/ui'
 import './Auth.css'
 
 type Mode = 'signin' | 'signup'
 
 export function Auth() {
+  const { language } = useLanguage()
   const [mode, setMode] = useState<Mode>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -21,7 +24,7 @@ export function Auth() {
       if (mode === 'signup') {
         const { error } = await supabase.auth.signUp({ email, password })
         if (error) setMessage({ type: 'error', text: error.message })
-        else setMessage({ type: 'success', text: 'Check your email to confirm, then sign in.' })
+        else setMessage({ type: 'success', text: ui('auth.confirm_email', language) })
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) setMessage({ type: 'error', text: error.message })
@@ -34,12 +37,12 @@ export function Auth() {
   return (
     <div className="auth">
       <div className="auth-card">
-        <h1>WheresIt</h1>
-        <p className="auth-subtitle">Sign in or create an account to track where you store things.</p>
+        <h1>{mode === 'signin' ? ui('auth.title_signin', language) : ui('auth.title_signup', language)}</h1>
+        <p className="auth-subtitle">{ui('auth.subtitle', language)}</p>
         <form onSubmit={handleSubmit} className="auth-form">
           <input
             type="email"
-            placeholder="Email"
+            placeholder={ui('auth.email', language)}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -48,7 +51,7 @@ export function Auth() {
           <div className="auth-password-wrap">
             <input
               type={showPassword ? 'text' : 'password'}
-              placeholder="Password"
+              placeholder={ui('auth.password', language)}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -68,7 +71,7 @@ export function Auth() {
             <p className={`auth-message auth-message--${message.type}`}>{message.text}</p>
           )}
           <button type="submit" disabled={loading}>
-            {loading ? '…' : mode === 'signin' ? 'Sign in' : 'Sign up'}
+            {loading ? '…' : mode === 'signin' ? ui('auth.signin', language) : ui('auth.signup', language)}
           </button>
         </form>
         <button
@@ -79,7 +82,7 @@ export function Auth() {
             setMessage(null)
           }}
         >
-          {mode === 'signin' ? 'Create an account' : 'Already have an account? Sign in'}
+          {mode === 'signin' ? ui('auth.toggle_signup', language) : ui('auth.toggle_signin', language)}
         </button>
       </div>
     </div>

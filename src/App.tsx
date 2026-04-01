@@ -8,7 +8,7 @@ import { LanguageProvider, useLanguage } from './i18n/LanguageContext'
 import { ThemeProvider, useTheme } from './theme/ThemeContext'
 import type { ThemeMode } from './theme/ThemeContext'
 import type { Lang } from './i18n/picklists'
-import { Auth } from './components/Auth'
+import { LandingPage } from './components/LandingPage'
 import { HouseholdSelect } from './components/HouseholdSelect'
 import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
@@ -78,7 +78,7 @@ function AppInner() {
   }
 
   if (!user) {
-    return <Auth />
+    return <LandingPage />
   }
 
   const needsHousehold = !householdLoading && households.length === 0

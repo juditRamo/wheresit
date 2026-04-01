@@ -230,6 +230,32 @@ const strings: Record<string, { en: string; es: string }> = {
   'places.no_place': { en: 'No place', es: 'Sin lugar' },
   'places.change': { en: 'Change', es: 'Cambiar' },
   'places.choose_place': { en: 'Choose from places', es: 'Elegir de lugares' },
+
+  // Landing page
+  'landing.headline': { en: 'Where did I put it?', es: '¿Dónde lo guardé?' },
+  'landing.subheadline': {
+    en: 'Stop searching. WheresIt remembers where you store things — and shares with your whole family.',
+    es: 'Deja de buscar. WheresIt recuerda dónde guardas las cosas — y lo comparte con toda tu familia.',
+  },
+  'landing.feature.organize': { en: '📦 Organize by rooms, closets, boxes — however you want', es: '📦 Organiza por habitaciones, armarios, cajas — como quieras' },
+  'landing.feature.find': { en: '🔍 Find anything in seconds', es: '🔍 Encuentra cualquier cosa en segundos' },
+  'landing.feature.share': { en: '👨‍👩‍👧 Share with your partner, family, or roommates', es: '👨‍👩‍👧 Comparte con tu pareja, familia o compañeros de piso' },
+  'landing.free': { en: 'Free to start. No credit card required.', es: 'Gratis para empezar. Sin tarjeta de crédito.' },
+
+  // Auth form
+  'auth.title_signin': { en: 'Login', es: 'Iniciar sesión' },
+  'auth.title_signup': { en: 'Sign Up', es: 'Crear cuenta' },
+  'auth.subtitle': {
+    en: 'Sign in or create an account to track where you store things.',
+    es: 'Inicia sesión o crea una cuenta para recordar dónde guardas las cosas.',
+  },
+  'auth.email': { en: 'Email', es: 'Correo electrónico' },
+  'auth.password': { en: 'Password', es: 'Contraseña' },
+  'auth.signin': { en: 'Sign in', es: 'Iniciar sesión' },
+  'auth.signup': { en: 'Sign up', es: 'Crear cuenta' },
+  'auth.toggle_signup': { en: 'Create an account', es: 'Crear una cuenta' },
+  'auth.toggle_signin': { en: 'Already have an account? Sign in', es: '¿Ya tienes cuenta? Inicia sesión' },
+  'auth.confirm_email': { en: 'Check your email to confirm, then sign in.', es: 'Revisa tu correo para confirmar y luego inicia sesión.' },
 }
 
 /**
