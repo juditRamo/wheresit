@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useBackHandler } from '../hooks/useBackHandler'
 import { X, Copy, Check, LogOut, Pencil } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { Clipboard } from '@capacitor/clipboard'
@@ -41,7 +40,6 @@ export function SettingsPanel({ user, profile, updateProfile, household, househo
   const { language, setLanguage } = useLanguage()
   const { theme, setTheme } = useTheme()
   const { fields: customFields, createField, updateField, deleteField, reorderFields, createOption, updateOption, deleteOption } = useCustomFields(household.id)
-  useBackHandler(true, onClose)
   const [copied, setCopied] = useState(false)
   const [members, setMembers] = useState<MemberInfo[]>([])
   const [editProfileOpen, setEditProfileOpen] = useState(false)
