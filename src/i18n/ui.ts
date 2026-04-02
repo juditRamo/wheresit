@@ -136,6 +136,7 @@ const strings: Record<string, { en: string; es: string }> = {
   'settings.language': { en: 'Language', es: 'Idioma' },
   'settings.owner': { en: 'Owner', es: 'Propietario' },
   'settings.member': { en: 'Member', es: 'Miembro' },
+  'settings.custom_fields': { en: 'Custom Fields', es: 'Campos personalizados' },
 
   // Photo attachments (4.2)
   'photo.add': { en: 'Add photo', es: 'A\u00f1adir foto' },

@@ -7,7 +7,6 @@ import './Sidebar.css'
 interface SidebarProps {
   active: NavTab
   onNavigate: (tab: NavTab) => void
-  onSettingsClick: () => void
 }
 
 const navItems: { tab: NavTab; icon: typeof MessageSquare }[] = [
@@ -16,7 +15,7 @@ const navItems: { tab: NavTab; icon: typeof MessageSquare }[] = [
   { tab: 'chat', icon: MessageSquare },
 ]
 
-export function Sidebar({ active, onNavigate, onSettingsClick }: SidebarProps) {
+export function Sidebar({ active, onNavigate }: SidebarProps) {
   const { language } = useLanguage()
 
   return (
@@ -45,7 +44,10 @@ export function Sidebar({ active, onNavigate, onSettingsClick }: SidebarProps) {
       </nav>
 
       <div className="sidebar__bottom">
-        <button className="sidebar__nav-item" onClick={onSettingsClick}>
+        <button
+          className={`sidebar__nav-item ${active === 'settings' ? 'sidebar__nav-item--active' : ''}`}
+          onClick={() => onNavigate('settings')}
+        >
           <Settings size={18} />
           <span>{ui('settings.title', language)}</span>
         </button>

@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { initBackNavigation } from './lib/backNavigation'
-import { useBackHandler } from './hooks/useBackHandler'
 import { useAuth } from './hooks/useAuth'
 import { useHousehold } from './hooks/useHousehold'
 import { useProfile } from './hooks/useProfile'
@@ -10,13 +9,12 @@ import type { ThemeMode } from './theme/ThemeContext'
 import type { Lang } from './i18n/picklists'
 import { LandingPage } from './components/LandingPage'
 import { HouseholdSelect } from './components/HouseholdSelect'
-import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
 import { BottomNav, type NavTab } from './components/BottomNav'
 import { Chat } from './components/Chat'
 import { InventoryView } from './components/InventoryView'
 import { LocationsView } from './components/LocationsView'
-import { SettingsPanel } from './components/SettingsPanel'
+import { SettingsView } from './components/SettingsView'
 import type { LocationRef } from './types'
 import './App.css'
 
@@ -39,11 +37,8 @@ function AppInner() {
 
   const [activeTab, setActiveTab] = useState<NavTab>('items')
   const [itemsFilter, setItemsFilter] = useState<LocationRef | null>(null)
-  const [settingsOpen, setSettingsOpen] = useState(false)
-
   // Initialize back-button navigation
   useEffect(() => { initBackNavigation() }, [])
-  useBackHandler(settingsOpen, () => setSettingsOpen(false))
 
   // Sync theme/language from profile when profile loads (once per user)
   useEffect(() => {
@@ -114,9 +109,8 @@ function AppInner() {
 
   return (
     <div className="app app--main">
-      <Sidebar active={activeTab} onNavigate={handleTabNavigate} onSettingsClick={() => setSettingsOpen(true)} />
+      <Sidebar active={activeTab} onNavigate={handleTabNavigate} />
       <div className="app__body">
-        <Header onMenuClick={() => setSettingsOpen(true)} />
         <main className="app__content">
           {activeTab === 'chat' && selectedId && (
             <Chat householdId={selectedId} onNavigateToItems={handleNavigateToItems} />
@@ -127,34 +121,32 @@ function AppInner() {
           {activeTab === 'locations' && selectedId && (
             <LocationsView householdId={selectedId} onNavigateToItems={handleNavigateToItems} />
           )}
+          {activeTab === 'settings' && selectedHousehold && selectedId && (
+            <SettingsView
+              user={user}
+              profile={profile}
+              updateProfile={updateProfile}
+              household={selectedHousehold}
+              households={households}
+              selectedId={selectedId}
+              onSelectHousehold={setSelectedId}
+              onCreateHousehold={async (name) => {
+                const result = await createHousehold(name)
+                return { error: result.error }
+              }}
+              onJoinHousehold={async (householdId) => {
+                const result = await joinHousehold(householdId)
+                return { error: result.error }
+              }}
+              onUpdateHouseholdName={async (householdId, name) => {
+                const result = await updateHouseholdName(householdId, name)
+                return { data: result.data ?? undefined, error: result.error }
+              }}
+            />
+          )}
         </main>
-        <BottomNav active={activeTab} onNavigate={handleTabNavigate} onSettingsClick={() => setSettingsOpen(true)} />
+        <BottomNav active={activeTab} onNavigate={handleTabNavigate} />
       </div>
-
-      {settingsOpen && selectedHousehold && selectedId && (
-        <SettingsPanel
-          user={user}
-          profile={profile}
-          updateProfile={updateProfile}
-          household={selectedHousehold}
-          households={households}
-          selectedId={selectedId}
-          onSelectHousehold={setSelectedId}
-          onCreateHousehold={async (name) => {
-            const result = await createHousehold(name)
-            return { error: result.error }
-          }}
-          onJoinHousehold={async (householdId) => {
-            const result = await joinHousehold(householdId)
-            return { error: result.error }
-          }}
-          onUpdateHouseholdName={async (householdId, name) => {
-            const result = await updateHouseholdName(householdId, name)
-            return { data: result.data ?? undefined, error: result.error }
-          }}
-          onClose={() => setSettingsOpen(false)}
-        />
-      )}
     </div>
   )
 }

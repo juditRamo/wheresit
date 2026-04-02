@@ -3,15 +3,14 @@ import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
 import './BottomNav.css'
 
-export type NavTab = 'chat' | 'items' | 'locations'
+export type NavTab = 'chat' | 'items' | 'locations' | 'settings'
 
 interface BottomNavProps {
   active: NavTab
   onNavigate: (tab: NavTab) => void
-  onSettingsClick: () => void
 }
 
-export function BottomNav({ active, onNavigate, onSettingsClick }: BottomNavProps) {
+export function BottomNav({ active, onNavigate }: BottomNavProps) {
   const { language } = useLanguage()
 
   return (
@@ -38,8 +37,8 @@ export function BottomNav({ active, onNavigate, onSettingsClick }: BottomNavProp
         <span className="bottom-nav__label">{ui('nav.chat', language)}</span>
       </button>
       <button
-        className="bottom-nav__item"
-        onClick={onSettingsClick}
+        className={`bottom-nav__item ${active === 'settings' ? 'bottom-nav__item--active' : ''}`}
+        onClick={() => onNavigate('settings')}
       >
         <Settings size={20} />
         <span className="bottom-nav__label">{ui('settings.title', language)}</span>

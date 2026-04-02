@@ -1,0 +1,211 @@
+.settings-profile {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-profile__section {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.settings-profile__section-title {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 12px;
+}
+
+.settings-profile__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.settings-profile__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-profile__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 2px;
+}
+
+.settings-profile__email {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+  word-break: break-all;
+}
+
+.settings-profile__edit-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold-primary);
+  background: rgba(201, 169, 98, 0.08);
+  border: 1px solid var(--gold-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.settings-profile__edit-icon:hover,
+.settings-profile__edit-icon:active {
+  background: rgba(201, 169, 98, 0.15);
+}
+
+.settings-profile__change-password-link {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 6px 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gold-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.settings-profile__change-password-link:hover {
+  opacity: 0.85;
+}
+
+.settings-profile__edit-form {
+  margin-top: 12px;
+  margin-bottom: 16px;
+}
+
+.settings-profile__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  margin: 0 0 4px;
+}
+
+.settings-profile__input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border: 1px solid var(--border-dark);
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.settings-profile__form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.settings-profile__btn-primary,
+.settings-profile__btn-secondary {
+  min-height: 44px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.settings-profile__btn-primary {
+  color: var(--bg-card);
+  background: var(--gold-primary);
+  border: 1px solid var(--gold-primary);
+}
+
+.settings-profile__btn-primary:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.settings-profile__btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.settings-profile__btn-secondary {
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-dark);
+}
+
+.settings-profile__btn-secondary:hover,
+.settings-profile__btn-secondary:active {
+  background: var(--border-dark);
+}
+
+.settings-profile__error {
+  font-size: 12px;
+  color: var(--danger);
+  margin: 0 0 8px;
+}
+
+.settings-profile__success {
+  font-size: 12px;
+  color: var(--gold-primary);
+  margin: 0 0 8px;
+}
+
+.settings-profile__toggle-row {
+  display: flex;
+  gap: 8px;
+}
+
+.settings-profile__toggle-btn {
+  flex: 1;
+  min-height: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--border-dark);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+}
+
+.settings-profile__toggle-btn--active {
+  color: var(--gold-primary);
+  border-color: var(--gold-primary);
+  background: var(--gold-dim);
+}
+
+.settings-profile__signout {
+  width: 100%;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--danger);
+  background: var(--danger-dim);
+  border: 1px solid var(--danger-border);
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+
+.settings-profile__signout:hover,
+.settings-profile__signout:active {
+  background: var(--danger-hover);
+}
