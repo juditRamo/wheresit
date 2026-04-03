@@ -7,7 +7,7 @@ import { sendChatMessage } from '../api/chat'
 import { useStoredItems } from '../hooks/useStoredItems'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
-import type { ChatMessage, LocationRef, PendingUpdate } from '../types'
+import type { ChatMessage, LocationRef, PendingUpdate, PendingDuplicateChoice } from '../types'
 import type { Lang } from '../i18n/picklists'
 import './Chat.css'
 
@@ -87,7 +87,7 @@ export function Chat({ householdId, onNavigateToItems }: ChatProps) {
     await sendMessage(text)
   }
 
-  async function sendMessage(text: string, options?: { confirm?: boolean; confirmPlaceId?: string }) {
+  async function sendMessage(text: string, options?: { confirm?: boolean | 'move' | 'add'; confirmPlaceId?: string; confirmEntryId?: string }) {
     setInput('')
     setError(null)
 
@@ -110,7 +110,16 @@ export function Chat({ householdId, onNavigateToItems }: ChatProps) {
       setLanguage(response.language)
       refetchStoredItems()
 
-      if (response.pendingUpdate) {
+      if (response.pendingDuplicateChoice) {
+        const assistantMessage: ChatMessage = {
+          id: genId(),
+          role: 'assistant',
+          content: response.reply,
+          createdAt: new Date(),
+          pendingDuplicateChoice: response.pendingDuplicateChoice,
+        }
+        setMessages((prev) => [...prev, assistantMessage])
+      } else if (response.pendingUpdate) {
         const assistantMessage: ChatMessage = {
           id: genId(),
           role: 'assistant',
@@ -173,6 +182,24 @@ export function Chat({ householdId, onNavigateToItems }: ChatProps) {
 
   const handleCancelPlaceMatch = useCallback((placeId: string) => {
     setMessages((prev) => prev.filter((m) => !m.pendingPlaceMatch || m.pendingPlaceMatch.suggestedPlaceId !== placeId))
+  }, [])
+
+  const handleConfirmMove = useCallback(async (choice: PendingDuplicateChoice) => {
+    const text = `${choice.item_name} in ${choice.newLocation}`
+    setMessages((prev) => prev.filter((m) => !m.pendingDuplicateChoice))
+    await sendMessage(text, { confirm: 'move', confirmEntryId: choice.entries[0].entryId })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [householdId])
+
+  const handleConfirmAdd = useCallback(async (choice: PendingDuplicateChoice) => {
+    const text = `${choice.item_name} in ${choice.newLocation}`
+    setMessages((prev) => prev.filter((m) => !m.pendingDuplicateChoice))
+    await sendMessage(text, { confirm: 'add' })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [householdId])
+
+  const handleCancelDuplicate = useCallback(() => {
+    setMessages((prev) => prev.filter((m) => !m.pendingDuplicateChoice))
   }, [])
 
   // Voice input
@@ -260,6 +287,9 @@ export function Chat({ householdId, onNavigateToItems }: ChatProps) {
           onCancelPending={handleCancelPending}
           onConfirmPlaceMatch={handleConfirmPlace}
           onCancelPlaceMatch={handleCancelPlaceMatch}
+          onConfirmMove={handleConfirmMove}
+          onConfirmAdd={handleConfirmAdd}
+          onCancelDuplicate={handleCancelDuplicate}
           isLoading={loading}
           loadingText={pendingLanguage === 'es' ? 'Pensando...' : 'Thinking...'}
         />

@@ -2,7 +2,7 @@ import { ConciergeBell, MapPin, ChevronRight } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
-import type { ChatMessage, LocationRef, QueryResult, PendingUpdate, PendingPlaceMatch } from '../types'
+import type { ChatMessage, LocationRef, QueryResult, PendingUpdate, PendingPlaceMatch, PendingDuplicateChoice } from '../types'
 import './MessageList.css'
 
 interface MessageListProps {
@@ -12,6 +12,9 @@ interface MessageListProps {
   onCancelPending?: (pending: PendingUpdate) => void
   onConfirmPlaceMatch?: (lastUserMessage: string, placeId: string) => void
   onCancelPlaceMatch?: (placeId: string) => void
+  onConfirmMove?: (choice: PendingDuplicateChoice) => void
+  onConfirmAdd?: (choice: PendingDuplicateChoice) => void
+  onCancelDuplicate?: () => void
   isLoading?: boolean
   loadingText?: string
 }
@@ -100,6 +103,39 @@ function ConfirmCard({ pending, onConfirm, onCancel }: { pending: PendingUpdate;
   )
 }
 
+function DuplicateChoiceCard({
+  choice,
+  onMove,
+  onAdd,
+  onCancel,
+}: {
+  choice: PendingDuplicateChoice
+  onMove: () => void
+  onAdd: () => void
+  onCancel: () => void
+}) {
+  const { language } = useLanguage()
+  const locations = choice.entries.map((e) => e.location).join(', ')
+  return (
+    <div className="confirm-card">
+      <p className="confirm-card__text">
+        {ui('confirm.duplicate_prompt', language, { item: choice.item_name, locations })}
+      </p>
+      <div className="confirm-card__actions">
+        <button className="confirm-card__btn confirm-card__btn--cancel" onClick={onCancel}>
+          {ui('confirm.cancel', language)}
+        </button>
+        <button className="confirm-card__btn confirm-card__btn--confirm" onClick={onMove}>
+          {ui('confirm.move', language)}
+        </button>
+        <button className="confirm-card__btn confirm-card__btn--confirm" onClick={onAdd}>
+          {ui('confirm.add_another', language)}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function MessageList({
   messages,
   onLocationClick,
@@ -107,6 +143,9 @@ export function MessageList({
   onCancelPending,
   onConfirmPlaceMatch,
   onCancelPlaceMatch,
+  onConfirmMove,
+  onConfirmAdd,
+  onCancelDuplicate,
   isLoading,
   loadingText,
 }: MessageListProps) {
@@ -186,6 +225,15 @@ export function MessageList({
                   if (prev?.role === 'user') onConfirmPlaceMatch(prev.content, m.pendingPlaceMatch!.suggestedPlaceId)
                 }}
                 onCancel={() => onCancelPlaceMatch(m.pendingPlaceMatch!.suggestedPlaceId)}
+              />
+            )}
+            {/* Duplicate item choice card */}
+            {m.role === 'assistant' && m.pendingDuplicateChoice && onConfirmMove && onConfirmAdd && onCancelDuplicate && (
+              <DuplicateChoiceCard
+                choice={m.pendingDuplicateChoice}
+                onMove={() => onConfirmMove(m.pendingDuplicateChoice!)}
+                onAdd={() => onConfirmAdd(m.pendingDuplicateChoice!)}
+                onCancel={onCancelDuplicate}
               />
             )}
           </div>

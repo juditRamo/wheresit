@@ -125,6 +125,12 @@ export interface CustomFieldValue {
   value_date: string | null
 }
 
+export interface PendingDuplicateChoice {
+  entries: Array<{ entryId: string; location: string }>
+  newLocation: string
+  item_name: string
+}
+
 export type ChatMessageRole = 'user' | 'assistant'
 
 export interface LocationRef {
@@ -142,4 +148,5 @@ export interface ChatMessage {
   queryResults?: QueryResult[]
   pendingUpdate?: PendingUpdate
   pendingPlaceMatch?: PendingPlaceMatch
+  pendingDuplicateChoice?: PendingDuplicateChoice
 }

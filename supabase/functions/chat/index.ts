@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    const { message, householdId, confirm, confirmPlaceId } = (await req.json()) as { message?: string; householdId?: string; confirm?: boolean; confirmPlaceId?: string }
+    const { message, householdId, confirm, confirmPlaceId, confirmEntryId } = (await req.json()) as { message?: string; householdId?: string; confirm?: boolean | 'move' | 'add'; confirmPlaceId?: string; confirmEntryId?: string }
     if (!message || typeof message !== 'string' || !householdId || typeof householdId !== 'string') {
       return new Response(
         JSON.stringify({ error: 'Missing message or householdId' }),
@@ -159,6 +159,7 @@ Deno.serve(async (req) => {
     let locationRef: { place_id?: string; place_label?: string; location_description?: string } | undefined
     let queryResults: QueryResult[] | undefined
     let pendingUpdate: PendingUpdate | undefined
+    let pendingDuplicateChoice: { entries: Array<{ entryId: string; location: string }>; newLocation: string; item_name: string } | undefined
     let pendingPlaceMatch: { suggestedPlaceId: string; suggestedPlaceLabel: string; locationPath: LocationPathSegment[]; confidence: 'low' | 'medium' } | undefined
 
     // QUERY_LOCATION: "What's in X?" → heuristic first, then LLM only when needed
@@ -313,55 +314,73 @@ Deno.serve(async (req) => {
         writeData.place_id = placeResult.place_id
       }
 
-      const { data: existing } = await supabase
+      const { data: existingRows } = await supabase
         .from('storage_entries')
         .select('id, location_description, place_id')
         .eq('household_id', householdId)
         .ilike('item_name', itemName)
-        .limit(1)
-        .maybeSingle()
-      if (existing && !confirm) {
-        const oldLocation = existing.location_description ?? ''
-        if (oldLocation !== locationDesc) {
-          reply = lang === 'es'
-            ? `${intentResult.item_name} está actualmente en ${oldLocation}. ¿Mover a ${locationDesc}?`
-            : `${intentResult.item_name} is currently in ${oldLocation}. Move to ${locationDesc}?`
 
-          pendingUpdate = {
-            entryId: existing.id,
-            oldLocation,
+      const existingList = (existingRows ?? []) as Array<{ id: string; location_description: string; place_id: string | null }>
+
+      // Check if already at same location (idempotent)
+      const alreadyThere = existingList.find((e) => e.location_description === locationDesc)
+      if (alreadyThere && !confirm) {
+        reply = lang === 'es'
+          ? `Ya sé que ${intentResult.item_name} está en ${locationDesc}.`
+          : `I already know ${intentResult.item_name} is in ${locationDesc}.`
+        return new Response(JSON.stringify({ reply, language: lang }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      // Existing entries at different locations — ask user to move or add
+      if (existingList.length > 0 && !confirm) {
+        const otherLocations = existingList
+          .filter((e) => e.location_description !== locationDesc)
+        if (otherLocations.length > 0) {
+          const locList = otherLocations.map((e) => e.location_description).join(', ')
+          reply = lang === 'es'
+            ? `Ya tienes ${intentResult.item_name} en ${locList}. ¿Moverlo o añadir otro?`
+            : `You already have ${intentResult.item_name} in ${locList}. Move it, or add another?`
+          pendingDuplicateChoice = {
+            entries: otherLocations.map((e) => ({ entryId: e.id, location: e.location_description })),
             newLocation: locationDesc,
             item_name: intentResult.item_name,
           }
-
-          return new Response(JSON.stringify({ reply, language: lang, pendingUpdate }), {
+          return new Response(JSON.stringify({ reply, language: lang, pendingDuplicateChoice }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           })
         }
       }
+
+      // Determine which entry to move (if confirm === 'move' or true for backward compat)
+      const shouldMove = confirm === 'move' || confirm === true
+      const moveTarget = shouldMove
+        ? (confirmEntryId ? existingList.find((e) => e.id === confirmEntryId) : existingList[0]) ?? null
+        : null
 
       let conceptResolution: ConceptResolution | null = null
       if (geminiKey) {
         conceptResolution = await ensureConceptForItem(supabase, householdId, originalItemName, geminiKey)
       }
 
-      let entryIdForConcept: string | null = existing?.id ?? null
+      let entryIdForConcept: string | null = moveTarget?.id ?? null
 
       // Proceed with the write
       let dbError = false
-      if (existing) {
+      if (moveTarget) {
         try {
           await supabase.from('history_events').insert({
             household_id: householdId,
             actor_id: user.id,
             event_type: 'move_object',
             entity_type: 'storage_entry',
-            entity_id: existing.id,
+            entity_id: moveTarget.id,
             payload: {
               item_name: originalItemName,
               from: {
-                location_description: existing.location_description,
-                place_id: existing.place_id ?? undefined,
+                location_description: moveTarget.location_description,
+                place_id: moveTarget.place_id ?? undefined,
               },
               to: {
                 location_description: writeData.location_description,
@@ -376,7 +395,7 @@ Deno.serve(async (req) => {
         const { error: updateErr } = await supabase
           .from('storage_entries')
           .update(writeData)
-          .eq('id', existing.id)
+          .eq('id', moveTarget.id)
         if (updateErr) dbError = true
       } else {
         const { data: inserted, error: insertErr } = await supabase
@@ -584,7 +603,7 @@ Deno.serve(async (req) => {
         : 'I can remember where you put things or tell you where something is. Try: "Keys are in the drawer" or "Where are the keys?"'
     }
 
-    return new Response(JSON.stringify({ reply, language: lang, locationRef, queryResults, pendingUpdate, pendingPlaceMatch }), {
+    return new Response(JSON.stringify({ reply, language: lang, locationRef, queryResults, pendingUpdate, pendingDuplicateChoice, pendingPlaceMatch }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {

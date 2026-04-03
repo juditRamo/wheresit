@@ -72,6 +72,9 @@ const strings: Record<string, { en: string; es: string }> = {
   'confirm.move_prompt': { en: '{item} is currently in {old}. Move to {new}?', es: '{item} est\u00e1 actualmente en {old}. \u00bfMover a {new}?' },
   'confirm.confirm': { en: 'Confirm', es: 'Confirmar' },
   'confirm.cancel': { en: 'Cancel', es: 'Cancelar' },
+  'confirm.duplicate_prompt': { en: 'You already have {item} in {locations}. Move it, or add another?', es: 'Ya tienes {item} en {locations}. ¿Moverlo o añadir otro?' },
+  'confirm.move': { en: 'Move', es: 'Mover' },
+  'confirm.add_another': { en: 'Add another', es: 'Añadir otro' },
 
   // Voice input (2.3)
   'voice.listening': { en: 'Listening...', es: 'Escuchando...' },

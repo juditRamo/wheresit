@@ -1,5 +1,5 @@
 import { supabase } from '../supabaseClient'
-import type { LocationRef, QueryResult, PendingUpdate, PendingPlaceMatch } from '../types'
+import type { LocationRef, QueryResult, PendingUpdate, PendingPlaceMatch, PendingDuplicateChoice } from '../types'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -11,12 +11,13 @@ export interface ChatResponse {
   queryResults?: QueryResult[]
   pendingUpdate?: PendingUpdate
   pendingPlaceMatch?: PendingPlaceMatch
+  pendingDuplicateChoice?: PendingDuplicateChoice
 }
 
 export async function sendChatMessage(
   message: string,
   householdId: string,
-  options?: { confirm?: boolean; confirmPlaceId?: string }
+  options?: { confirm?: boolean | 'move' | 'add'; confirmPlaceId?: string; confirmEntryId?: string }
 ): Promise<ChatResponse> {
   const { data: { session }, error: sessionError } = await supabase.auth.getSession()
   if (sessionError || !session?.access_token) {
@@ -31,8 +32,9 @@ export async function sendChatMessage(
 
   const url = `${supabaseUrl}/functions/v1/chat`
   const body: Record<string, unknown> = { message, householdId }
-  if (options?.confirm) body.confirm = true
+  if (options?.confirm) body.confirm = options.confirm
   if (options?.confirmPlaceId) body.confirmPlaceId = options.confirmPlaceId
+  if (options?.confirmEntryId) body.confirmEntryId = options.confirmEntryId
 
   const res = await fetch(url, {
     method: 'POST',
@@ -55,5 +57,6 @@ export async function sendChatMessage(
     queryResults: resBody.queryResults,
     pendingUpdate: resBody.pendingUpdate,
     pendingPlaceMatch: resBody.pendingPlaceMatch,
+    pendingDuplicateChoice: resBody.pendingDuplicateChoice,
   }
 }
