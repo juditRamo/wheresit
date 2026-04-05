@@ -199,6 +199,25 @@ export function useCustomFields(householdId: string | null) {
     [refetch]
   )
 
+  const saveFormValues = useCallback(
+    async (entryId: string, rawValues: Record<string, unknown>) => {
+      const mapped: Record<string, { value_text?: string | null; value_number?: number | null; value_boolean?: boolean | null; value_option?: string | null; value_options?: string[] | null; value_date?: string | null }> = {}
+      for (const field of fields) {
+        const val = rawValues[field.id]
+        const row: typeof mapped[string] = {}
+        if (field.field_type === 'text') row.value_text = (val as string) ?? null
+        else if (field.field_type === 'number') row.value_number = (val as number) ?? null
+        else if (field.field_type === 'boolean') row.value_boolean = val != null ? (val as boolean) : null
+        else if (field.field_type === 'select') row.value_option = (val as string) ?? null
+        else if (field.field_type === 'multiselect') row.value_options = (val as string[]) ?? null
+        else if (field.field_type === 'date') row.value_date = (val as string) ?? null
+        mapped[field.id] = row
+      }
+      await saveEntryValues(entryId, mapped)
+    },
+    [fields, saveEntryValues]
+  )
+
   return {
     fields,
     values,
@@ -206,6 +225,7 @@ export function useCustomFields(householdId: string | null) {
     optionLabelMap,
     getEntryValues,
     saveEntryValues,
+    saveFormValues,
     createField,
     updateField,
     deleteField,

@@ -6,6 +6,7 @@ import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-ki
 import { Check, ChevronLeft, MoreHorizontal, Package, Plus, X } from 'lucide-react'
 import { usePlaces, type PlaceWithChildren } from '../hooks/usePlaces'
 import { useStorageEntries } from '../hooks/useStorageEntries'
+import { useCustomFields } from '../hooks/useCustomFields'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
 import { recordHistoryEvent } from '../lib/historyEvents'
@@ -39,6 +40,7 @@ function flattenTree(tree: PlaceWithChildren[]): PlaceWithChildren[] {
 export function LocationsView({ householdId, onNavigateToItems }: LocationsViewProps) {
   const { placeTree, loading, createPlace, updatePlace, movePlace, deletePlace, reorderPlaces, refetch, getPlacePath, getDescendantIds } = usePlaces(householdId)
   const { entries, createEntry, updateEntry, deleteEntry, deletePhoto, refetch: refetchEntries } = useStorageEntries(householdId)
+  const { fields: customFields, getEntryValues, saveFormValues, createOption } = useCustomFields(householdId)
   const { language } = useLanguage()
 
   // Drill-down navigation state
@@ -254,7 +256,7 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
     return entries.filter((e) => e.place_id === currentPlace.id)
   }, [entries, currentPlace])
 
-  async function handleItemSave(data: { item_name: string; location_description: string; photo_path?: string | null; place_id?: string | null }) {
+  async function handleItemSave(data: { item_name: string; location_description: string; photo_path?: string | null; place_id?: string | null }, fieldValues?: Record<string, unknown>) {
     if (editingItem) {
       const prev = editingItem
       const moved = data.place_id !== prev.place_id || data.location_description !== prev.location_description
@@ -267,6 +269,9 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
         location_description: data.location_description,
         ...(moved ? { from_location: prev.location_description } : {}),
       })
+      if (fieldValues) {
+        await saveFormValues(prev.id, fieldValues)
+      }
       setEditingItem(null)
     } else if (addingItemAtPlace) {
       const { data: created } = await createEntry(data)
@@ -275,6 +280,9 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
           item_name: data.item_name,
           location_description: data.location_description,
         })
+        if (fieldValues) {
+          await saveFormValues(created.id, fieldValues)
+        }
       }
       setAddingItemAtPlace(null)
     }
@@ -432,6 +440,9 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
           entry={editingItem}
           householdId={householdId}
           initialPlaceId={addingItemAtPlace?.id}
+          customFields={customFields}
+          customFieldValues={editingItem ? getEntryValues(editingItem.id) : undefined}
+          onCreateOption={createOption}
           onSave={handleItemSave}
           onDelete={editingItem ? handleItemDelete : undefined}
           onClose={() => { setAddingItemAtPlace(null); setEditingItem(null) }}

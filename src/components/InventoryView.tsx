@@ -120,7 +120,7 @@ function groupByPlace(entries: StorageEntry[], places: Array<{ id: string; label
 export function InventoryView({ householdId, filter, onClearFilter }: InventoryViewProps) {
   const { entries, loading, refetch, updateEntry, deleteEntry, deletePhoto, createEntry } = useStorageEntries(householdId)
   const { getDescendantIds, getPlaceById, getPlacePath, places } = usePlaces(householdId)
-  const { fields: customFields, valuesByEntry, optionLabelMap, getEntryValues, saveEntryValues, createOption } = useCustomFields(householdId)
+  const { fields: customFields, valuesByEntry, optionLabelMap, getEntryValues, saveFormValues, createOption } = useCustomFields(householdId)
   const { language } = useLanguage()
   const [activeTab, setActiveTab] = useState<SortTab>('place')
   const [searchQuery, setSearchQuery] = useState('')
@@ -265,7 +265,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
         })
       }
       if (fieldValues) {
-        await saveCustomFieldValues(editingEntry.id, fieldValues)
+        await saveFormValues(editingEntry.id, fieldValues)
       }
     }
     setEditingEntry(null)
@@ -295,27 +295,12 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
         place_id: data.place_id ?? undefined,
       })
       if (fieldValues) {
-        await saveCustomFieldValues(inserted.id, fieldValues)
+        await saveFormValues(inserted.id, fieldValues)
       }
     }
     setShowAddSheet(false)
   }
 
-  async function saveCustomFieldValues(entryId: string, fieldValues: Record<string, unknown>) {
-    const mapped: Record<string, { value_text?: string | null; value_number?: number | null; value_boolean?: boolean | null; value_option?: string | null; value_options?: string[] | null; value_date?: string | null }> = {}
-    for (const field of customFields) {
-      const val = fieldValues[field.id]
-      const row: typeof mapped[string] = {}
-      if (field.field_type === 'text') row.value_text = (val as string) ?? null
-      else if (field.field_type === 'number') row.value_number = (val as number) ?? null
-      else if (field.field_type === 'boolean') row.value_boolean = val != null ? (val as boolean) : null
-      else if (field.field_type === 'select') row.value_option = (val as string) ?? null
-      else if (field.field_type === 'multiselect') row.value_options = (val as string[]) ?? null
-      else if (field.field_type === 'date') row.value_date = (val as string) ?? null
-      mapped[field.id] = row
-    }
-    await saveEntryValues(entryId, mapped)
-  }
 
   return (
     <div className="inventory">
