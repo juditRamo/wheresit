@@ -63,7 +63,7 @@ export function PlaceDrillDown({
           {showRootOption && (
             <button
               type="button"
-              className="place-drill-down__opt place-drill-down__opt--root"
+              className="btn-ghost-gold place-drill-down__opt place-drill-down__opt--root"
               onClick={() => handleSelectPlace(null)}
             >
               {ui('places.root', language)}
@@ -72,7 +72,7 @@ export function PlaceDrillDown({
           {emptyOptionLabel && (
             <button
               type="button"
-              className="place-drill-down__opt"
+              className="btn-ghost-gold place-drill-down__opt"
               onClick={() => handleSelectPlace(null)}
             >
               {emptyOptionLabel}
@@ -82,7 +82,7 @@ export function PlaceDrillDown({
             <button
               key={p.id}
               type="button"
-              className="place-drill-down__opt"
+              className="btn-ghost-gold place-drill-down__opt"
               onClick={() => handleDrillInto(p)}
             >
               {p.label}
@@ -98,7 +98,7 @@ export function PlaceDrillDown({
       <div className="place-drill-down__list">
         <button
           type="button"
-          className="place-drill-down__opt place-drill-down__opt--back"
+          className="btn-secondary place-drill-down__opt place-drill-down__opt--back"
           onClick={handleBack}
         >
           <ChevronLeft size={14} />
@@ -107,7 +107,7 @@ export function PlaceDrillDown({
         {currentPlace && (
           <button
             type="button"
-            className="place-drill-down__opt place-drill-down__opt--confirm"
+            className="btn-ghost-gold place-drill-down__opt place-drill-down__opt--confirm"
             onClick={() => handleSelectPlace(currentPlace.id)}
           >
             {confirmLabel}: {currentPlace.label}
@@ -117,7 +117,7 @@ export function PlaceDrillDown({
           <button
             key={p.id}
             type="button"
-            className="place-drill-down__opt"
+            className="btn-ghost-gold place-drill-down__opt"
             onClick={() => handleDrillInto(p)}
           >
             {p.label}

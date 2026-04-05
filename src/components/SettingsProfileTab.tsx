@@ -107,16 +107,16 @@ export function SettingsProfileTab({ user, profile, updateProfile }: SettingsPro
             <label className="settings-profile__label">{ui('settings.display_name', language)}</label>
             <input
               type="text"
-              className="settings-profile__input"
+              className="input-field settings-profile__input"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder={ui('settings.display_name', language)}
             />
             <div className="settings-profile__form-actions">
-              <button type="button" className="settings-profile__btn-secondary" onClick={() => setEditProfileOpen(false)}>
+              <button type="button" className="btn-secondary settings-profile__btn-secondary" onClick={() => setEditProfileOpen(false)}>
                 {ui('edit.cancel', language)}
               </button>
-              <button type="button" className="settings-profile__btn-primary" onClick={handleSaveProfile} disabled={profileSaveStatus === 'saving'}>
+              <button type="button" className="btn-gold settings-profile__btn-primary" onClick={handleSaveProfile} disabled={profileSaveStatus === 'saving'}>
                 {profileSaveStatus === 'saving' ? '…' : profileSaveStatus === 'saved' ? ui('settings.profile_saved', language) : ui('settings.save', language)}
               </button>
             </div>
@@ -135,7 +135,7 @@ export function SettingsProfileTab({ user, profile, updateProfile }: SettingsPro
             <label className="settings-profile__label">{ui('settings.new_password', language)}</label>
             <input
               type="password"
-              className="settings-profile__input"
+              className="input-field settings-profile__input"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               autoComplete="new-password"
@@ -143,7 +143,7 @@ export function SettingsProfileTab({ user, profile, updateProfile }: SettingsPro
             <label className="settings-profile__label">{ui('settings.confirm_password', language)}</label>
             <input
               type="password"
-              className="settings-profile__input"
+              className="input-field settings-profile__input"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               autoComplete="new-password"
@@ -151,10 +151,10 @@ export function SettingsProfileTab({ user, profile, updateProfile }: SettingsPro
             {passwordError && <p className="settings-profile__error">{passwordError}</p>}
             {passwordStatus === 'success' && <p className="settings-profile__success">{ui('settings.password_updated', language)}</p>}
             <div className="settings-profile__form-actions">
-              <button type="button" className="settings-profile__btn-secondary" onClick={() => { setChangePasswordOpen(false); setPasswordError(null); setPasswordStatus('idle'); }}>
+              <button type="button" className="btn-secondary settings-profile__btn-secondary" onClick={() => { setChangePasswordOpen(false); setPasswordError(null); setPasswordStatus('idle'); }}>
                 {ui('edit.cancel', language)}
               </button>
-              <button type="button" className="settings-profile__btn-primary" onClick={handleChangePassword} disabled={passwordStatus === 'loading'}>
+              <button type="button" className="btn-gold settings-profile__btn-primary" onClick={handleChangePassword} disabled={passwordStatus === 'loading'}>
                 {passwordStatus === 'loading' ? '…' : ui('settings.save', language)}
               </button>
             </div>

@@ -197,3 +197,95 @@ button:active {
   transform: scale(0.97);
   transition: transform 0.1s;
 }
+
+/* ── Shared form classes ── */
+
+.input-field {
+  height: 44px;
+  padding: 10px 12px;
+  font-size: var(--font-size-body);
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border: 1px solid var(--border-dark);
+  border-radius: 8px;
+}
+
+.input-field:focus {
+  border-color: var(--gold-primary);
+}
+
+.input-field::placeholder {
+  color: var(--text-tertiary);
+}
+
+.btn-ghost-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 10px 14px;
+  font-size: var(--font-size-body);
+  font-weight: 600;
+  color: var(--gold-primary);
+  background: rgba(201, 169, 98, 0.1);
+  border: 1px solid var(--gold-border);
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.btn-ghost-gold:hover,
+.btn-ghost-gold:active {
+  background: rgba(201, 169, 98, 0.2);
+}
+
+.btn-ghost-gold:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 10px 14px;
+  font-size: var(--font-size-body);
+  font-weight: 600;
+  background: var(--gold-primary);
+  color: var(--text-on-gold);
+  border-radius: 8px;
+  transition: opacity 0.15s;
+}
+
+.btn-gold:hover,
+.btn-gold:active {
+  opacity: 0.9;
+}
+
+.btn-gold:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 10px 14px;
+  font-size: var(--font-size-body);
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-dark);
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.btn-secondary:hover,
+.btn-secondary:active {
+  background: var(--border-dark);
+}

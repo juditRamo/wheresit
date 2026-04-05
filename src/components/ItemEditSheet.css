@@ -97,21 +97,9 @@
 }
 
 .edit-sheet__input {
-  height: 44px;
-  padding: 0 14px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-dark);
+  /* visual styles from .input-field; override border-radius */
   border-radius: 10px;
-  font-size: var(--font-size-body);
-  color: var(--text-primary);
-}
-
-.edit-sheet__input:focus {
-  border-color: var(--gold-primary);
-}
-
-.edit-sheet__input::placeholder {
-  color: var(--text-tertiary);
+  padding: 0 14px;
 }
 
 .edit-sheet__select {
@@ -149,21 +137,10 @@
 
 .edit-sheet__place-change,
 .edit-sheet__place-choose {
+  /* visual styles from .btn-ghost-gold; override sizing */
   padding: 8px 14px;
+  min-height: auto;
   font-size: 12px;
-  font-weight: 600;
-  color: var(--gold-primary);
-  background: rgba(201, 169, 98, 0.1);
-  border: 1px solid var(--gold-border, rgba(201, 169, 98, 0.4));
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.edit-sheet__place-change:hover,
-.edit-sheet__place-choose:hover,
-.edit-sheet__place-change:active,
-.edit-sheet__place-choose:active {
-  background: rgba(201, 169, 98, 0.2);
 }
 
 .edit-sheet__actions {
@@ -175,25 +152,11 @@
 
 .edit-sheet__btn {
   flex: 1;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: var(--font-size-body);
-  font-weight: 600;
   border-radius: 10px;
-  transition: opacity 0.15s;
 }
 
 .edit-sheet__btn--primary {
-  background: var(--gold-primary);
-  color: var(--text-on-gold);
-}
-
-.edit-sheet__btn--primary:hover,
-.edit-sheet__btn--primary:active {
-  opacity: 0.9;
+  /* visual styles from .btn-gold */
 }
 
 .edit-sheet__btn--danger {
@@ -208,9 +171,7 @@
 }
 
 .edit-sheet__btn--secondary {
-  background: var(--bg-input);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-dark);
+  /* visual styles from .btn-secondary */
 }
 
 /* Delete confirmation dialog */

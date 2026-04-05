@@ -115,6 +115,7 @@ export function HouseholdSelect({
       {tab === 'create' && (
         <form onSubmit={handleCreate} className="household-select__form">
           <input
+            className="input-field"
             type="text"
             placeholder="Household name (e.g. Home)"
             value={createName}
@@ -127,10 +128,10 @@ export function HouseholdSelect({
             </p>
           )}
           <div className="household-select__actions">
-            <button type="submit" disabled={loading}>
+            <button type="submit" className="btn-ghost-gold" disabled={loading}>
               {loading ? '…' : 'Create'}
             </button>
-            <button type="button" onClick={() => setTab('pick')}>
+            <button type="button" className="btn-secondary" onClick={() => setTab('pick')}>
               Back
             </button>
           </div>
@@ -140,6 +141,7 @@ export function HouseholdSelect({
       {tab === 'join' && (
         <form onSubmit={handleJoin} className="household-select__form">
           <input
+            className="input-field"
             type="text"
             placeholder="Paste household ID or invite code"
             value={joinCode}
@@ -152,10 +154,10 @@ export function HouseholdSelect({
             </p>
           )}
           <div className="household-select__actions">
-            <button type="submit" disabled={loading}>
+            <button type="submit" className="btn-ghost-gold" disabled={loading}>
               {loading ? '…' : 'Join'}
             </button>
-            <button type="button" onClick={() => setTab('pick')}>
+            <button type="button" className="btn-secondary" onClick={() => setTab('pick')}>
               Back
             </button>
           </div>

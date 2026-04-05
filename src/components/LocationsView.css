@@ -22,22 +22,7 @@
 }
 
 .locations-view__add-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 14px;
-  min-height: 44px;
-  font-size: var(--font-size-body);
-  font-weight: 600;
-  color: var(--gold-primary);
-  background: rgba(201, 169, 98, 0.1);
-  border: 1px solid var(--gold-border);
-  border-radius: 8px;
-}
-
-.locations-view__add-btn:hover,
-.locations-view__add-btn:active {
-  background: rgba(201, 169, 98, 0.2);
+  /* visual styles from .btn-ghost-gold */
 }
 
 /* ── Nav bar (drilled-in level) ── */
@@ -159,8 +144,7 @@
   border-bottom: 1px solid var(--border-dark);
 }
 
-.locations-view__select,
-.locations-view__input {
+.locations-view__select {
   padding: 10px 12px;
   min-height: 44px;
   font-size: var(--font-size-body);
@@ -173,6 +157,7 @@
 .locations-view__input {
   flex: 1;
   min-width: 120px;
+  background: var(--bg-card);
 }
 
 .locations-view__submit,

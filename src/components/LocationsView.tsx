@@ -327,7 +327,7 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
       {isRoot ? (
         <div className="locations-view__header">
           <h1 className="locations-view__title">{ui('locations.tab_title', language)}</h1>
-          <button className="locations-view__add-btn" onClick={() => { setAdding(true); setNewIcon('map-pin'); setNewLabel('') }}>
+          <button className="btn-ghost-gold locations-view__add-btn" onClick={() => { setAdding(true); setNewIcon('map-pin'); setNewLabel('') }}>
             <Plus size={16} />
             {ui('locations.add_place', language)}
           </button>
@@ -382,7 +382,7 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
         <div className="locations-view__form">
           <PlaceIconPicker selected={newIcon} onSelect={setNewIcon} compact />
           <input
-            className="locations-view__input"
+            className="input-field locations-view__input"
             placeholder={ui('locations.name_placeholder', language)}
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}

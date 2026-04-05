@@ -92,7 +92,7 @@ export function ItemEditSheet({ mode, entry, householdId, initialPlaceId, custom
           <div className="edit-sheet__confirm">
             <p className="edit-sheet__confirm-text">{ui('edit.confirm_delete', language)}</p>
             <div className="edit-sheet__confirm-actions">
-              <button className="edit-sheet__btn edit-sheet__btn--secondary" onClick={() => setShowDeleteConfirm(false)}>
+              <button className="btn-secondary edit-sheet__btn edit-sheet__btn--secondary" onClick={() => setShowDeleteConfirm(false)}>
                 {ui('edit.cancel', language)}
               </button>
               <button className="edit-sheet__btn edit-sheet__btn--danger" onClick={onDelete}>
@@ -124,7 +124,7 @@ export function ItemEditSheet({ mode, entry, householdId, initialPlaceId, custom
           <div className="edit-sheet__field">
             <label className="edit-sheet__label">{ui('add.item_name', language)}</label>
             <input
-              className="edit-sheet__input"
+              className="input-field edit-sheet__input"
               type="text"
               value={itemName}
               onChange={(e) => setItemName(e.target.value)}
@@ -145,7 +145,7 @@ export function ItemEditSheet({ mode, entry, householdId, initialPlaceId, custom
                       </span>
                       <button
                         type="button"
-                        className="edit-sheet__place-change"
+                        className="btn-ghost-gold edit-sheet__place-change"
                         onClick={() => setShowPlacePicker(true)}
                       >
                         {ui('places.change', language)}
@@ -155,7 +155,7 @@ export function ItemEditSheet({ mode, entry, householdId, initialPlaceId, custom
                 ) : placeId === '' && !showPlacePicker ? (
                   <>
                     <input
-                      className="edit-sheet__input"
+                      className="input-field edit-sheet__input"
                       type="text"
                       value={locationText}
                       onChange={(e) => setLocationText(e.target.value)}
@@ -163,7 +163,7 @@ export function ItemEditSheet({ mode, entry, householdId, initialPlaceId, custom
                     />
                     <button
                       type="button"
-                      className="edit-sheet__place-choose"
+                      className="btn-ghost-gold edit-sheet__place-choose"
                       onClick={() => setShowPlacePicker(true)}
                     >
                       {ui('places.choose_place', language)}
@@ -181,7 +181,7 @@ export function ItemEditSheet({ mode, entry, householdId, initialPlaceId, custom
               </>
             ) : (
               <input
-                className="edit-sheet__input"
+                className="input-field edit-sheet__input"
                 type="text"
                 value={locationText}
                 onChange={(e) => setLocationText(e.target.value)}
@@ -216,7 +216,7 @@ export function ItemEditSheet({ mode, entry, householdId, initialPlaceId, custom
             </button>
           )}
           <button
-            className="edit-sheet__btn edit-sheet__btn--primary"
+            className="btn-gold edit-sheet__btn edit-sheet__btn--primary"
             onClick={handleSave}
             disabled={!itemName.trim() || photoUploading}
           >

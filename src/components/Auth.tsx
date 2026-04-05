@@ -41,6 +41,7 @@ export function Auth() {
         <p className="auth-subtitle">{ui('auth.subtitle', language)}</p>
         <form onSubmit={handleSubmit} className="auth-form">
           <input
+            className="input-field"
             type="email"
             placeholder={ui('auth.email', language)}
             value={email}
@@ -50,6 +51,7 @@ export function Auth() {
           />
           <div className="auth-password-wrap">
             <input
+              className="input-field"
               type={showPassword ? 'text' : 'password'}
               placeholder={ui('auth.password', language)}
               value={password}
@@ -70,7 +72,7 @@ export function Auth() {
           {message && (
             <p className={`auth-message auth-message--${message.type}`}>{message.text}</p>
           )}
-          <button type="submit" disabled={loading}>
+          <button type="submit" className="btn-ghost-gold" disabled={loading}>
             {loading ? '…' : mode === 'signin' ? ui('auth.signin', language) : ui('auth.signup', language)}
           </button>
         </form>
