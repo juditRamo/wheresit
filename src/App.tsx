@@ -5,6 +5,7 @@ import { useHousehold } from './hooks/useHousehold'
 import { useProfile } from './hooks/useProfile'
 import { LanguageProvider, useLanguage } from './i18n/LanguageContext'
 import { ThemeProvider, useTheme } from './theme/ThemeContext'
+import { ToastProvider } from './toast/ToastContext'
 import type { ThemeMode } from './theme/ThemeContext'
 import type { Lang } from './i18n/picklists'
 import { LandingPage } from './components/LandingPage'
@@ -155,7 +156,9 @@ function App() {
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <AppInner />
+        <ToastProvider>
+          <AppInner />
+        </ToastProvider>
       </LanguageProvider>
     </ThemeProvider>
   )

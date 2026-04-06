@@ -47,6 +47,7 @@ const strings: Record<string, { en: string; es: string }> = {
   'inventory.clear_filter': { en: 'Clear filter', es: 'Quitar filtro' },
   'inventory.filtered': { en: 'Filtered by: {place}', es: 'Filtrado por: {place}' },
   'inventory.filtered_spot': { en: 'Filtered by: {place} \u203A {spot}', es: 'Filtrado por: {place} \u203A {spot}' },
+  'inventory.synced': { en: 'Items synced', es: 'Objetos sincronizados' },
   'inventory.other_room': { en: 'Other', es: 'Otros' },
 
   // Edit / Delete (1.1)

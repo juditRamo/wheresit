@@ -9,7 +9,7 @@ export function useStorageEntries(householdId: string | null) {
   const refetch = useCallback(() => {
     if (!householdId) return
     setLoading(true)
-    supabase
+    return supabase
       .from('storage_entries')
       .select('*')
       .eq('household_id', householdId)

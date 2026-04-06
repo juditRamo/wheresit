@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useBackHandler } from '../hooks/useBackHandler'
 import {
   Search,
@@ -25,6 +25,7 @@ import { ItemEditSheet } from './ItemEditSheet'
 import { ActivityFeed } from './ActivityFeed'
 import { CustomFieldFilters } from './CustomFieldFilters'
 import type { CustomFieldFilter } from './CustomFieldFilters'
+import { useToast } from '../toast/ToastContext'
 import './InventoryView.css'
 
 interface InventoryViewProps {
@@ -122,6 +123,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
   const { getDescendantIds, getPlaceById, getPlacePath, places } = usePlaces(householdId)
   const { fields: customFields, valuesByEntry, optionLabelMap, getEntryValues, saveFormValues, createOption } = useCustomFields(householdId)
   const { language } = useLanguage()
+  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState<SortTab>('place')
   const [searchQuery, setSearchQuery] = useState('')
   const [editingEntry, setEditingEntry] = useState<StorageEntry | null>(null)
@@ -130,6 +132,10 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
   const [showActivity, setShowActivity] = useState(false)
   const [customFilters, setCustomFilters] = useState<CustomFieldFilter[]>([])
 
+  const handleSync = useCallback(async () => {
+    await refetch()
+    toast.info(ui('inventory.synced', language))
+  }, [refetch, toast, language])
 
   useBackHandler(showActivity, () => setShowActivity(false))
   useBackHandler(!!editingEntry, () => setEditingEntry(null))
@@ -322,7 +328,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
           >
             <History size={16} />
           </button>
-          <button className="inventory__icon-btn" onClick={refetch} aria-label="Sync">
+          <button className="inventory__icon-btn" onClick={handleSync} aria-label="Sync">
             <RefreshCw size={16} className={loading ? 'inventory__spin' : ''} />
           </button>
           <button
