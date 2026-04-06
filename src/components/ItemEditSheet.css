@@ -143,6 +143,19 @@
   font-size: 12px;
 }
 
+.edit-sheet__legacy-location {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: 8px 0;
+}
+
+.edit-sheet__no-places-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 8px 0;
+}
+
 .edit-sheet__actions {
   display: flex;
   gap: 10px;

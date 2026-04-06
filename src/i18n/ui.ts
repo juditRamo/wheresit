@@ -63,6 +63,7 @@ const strings: Record<string, { en: string; es: string }> = {
   'add.room': { en: 'Place', es: 'Lugar' },
   'add.spot': { en: 'Spot', es: 'Lugar' },
   'add.detail': { en: 'Detail', es: 'Detalle' },
+  'add.photo': { en: 'Photo', es: 'Foto' },
   'add.save': { en: 'Add item', es: 'A\u00f1adir objeto' },
 
   // Multi-result queries (2.1)
@@ -228,6 +229,7 @@ const strings: Record<string, { en: string; es: string }> = {
   'places.no_place': { en: 'No place', es: 'Sin lugar' },
   'places.change': { en: 'Change', es: 'Cambiar' },
   'places.choose_place': { en: 'Choose from places', es: 'Elegir de lugares' },
+  'places.create_places_hint': { en: 'Create places in the Locations tab first', es: 'Crea lugares en la pestaña Ubicaciones primero' },
 
   // Landing page
   'landing.headline': { en: 'Where did I put it?', es: '¿Dónde lo guardé?' },

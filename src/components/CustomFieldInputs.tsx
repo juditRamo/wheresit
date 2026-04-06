@@ -152,7 +152,7 @@ export function CustomFieldInputs({ fields, values, onChange, onCreateOption }: 
             {field.field_type === 'text' && (
               <input
                 type="text"
-                className="edit-sheet__input"
+                className="input-field edit-sheet__input"
                 value={(val as string) ?? ''}
                 onChange={e => onChange(field.id, e.target.value || null)}
               />
@@ -160,7 +160,7 @@ export function CustomFieldInputs({ fields, values, onChange, onCreateOption }: 
             {field.field_type === 'number' && (
               <input
                 type="number"
-                className="edit-sheet__input"
+                className="input-field edit-sheet__input"
                 inputMode="decimal"
                 value={val != null ? String(val) : ''}
                 onChange={e => {
@@ -199,7 +199,7 @@ export function CustomFieldInputs({ fields, values, onChange, onCreateOption }: 
             {field.field_type === 'date' && (
               <input
                 type="date"
-                className="edit-sheet__input"
+                className="input-field edit-sheet__input"
                 value={(val as string) ?? ''}
                 onChange={e => onChange(field.id, e.target.value || null)}
               />

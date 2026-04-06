@@ -32,7 +32,7 @@ export function ItemEditSheet({ mode, entry, householdId, initialPlaceId, custom
   const { placeTree, getPlacePath } = usePlaces(householdId)
   const [itemName, setItemName] = useState(entry?.item_name ?? '')
   const [placeId, setPlaceId] = useState(entry?.place_id ?? initialPlaceId ?? '')
-  const [locationText, setLocationText] = useState(entry?.place_id ? '' : (entry?.location_description ?? ''))
+  const legacyLocationText = (!entry?.place_id && entry?.location_description) ? entry.location_description : null
   const [photoPath, setPhotoPath] = useState<string | null>(entry?.photo_path ?? null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [photoUploading, setPhotoUploading] = useState(false)
@@ -62,7 +62,7 @@ export function ItemEditSheet({ mode, entry, householdId, initialPlaceId, custom
       const path = getPlacePath(placeId)
       return path.length ? path.map((p) => p.label).join(' › ') : ''
     }
-    return locationText.trim()
+    return legacyLocationText ?? ''
   }
 
   // NOTE: Renaming an item does not update item_concepts linkage.
@@ -79,7 +79,6 @@ export function ItemEditSheet({ mode, entry, householdId, initialPlaceId, custom
 
   function handlePlaceSelect(id: string | null) {
     setPlaceId(id ?? '')
-    if (!id) setLocationText('')
     setShowPlacePicker(false)
   }
 
@@ -135,68 +134,61 @@ export function ItemEditSheet({ mode, entry, householdId, initialPlaceId, custom
 
           <div className="edit-sheet__field">
             <label className="edit-sheet__label">{ui('add.room', language)}</label>
-            {placeTree.length > 0 ? (
+            {placeId && !showPlacePicker ? (
+              <div className="edit-sheet__place-display">
+                <span className="edit-sheet__place-path">
+                  {getPlacePath(placeId).map((p) => p.label).join(' › ')}
+                </span>
+                <button
+                  type="button"
+                  className="btn-ghost-gold edit-sheet__place-change"
+                  onClick={() => setShowPlacePicker(true)}
+                >
+                  {ui('places.change', language)}
+                </button>
+              </div>
+            ) : showPlacePicker && placeTree.length > 0 ? (
+              <PlaceDrillDown
+                placeTree={placeTree}
+                onSelect={handlePlaceSelect}
+                emptyOptionLabel={ui('places.no_place', language)}
+                confirmLabel={ui('places.use_this_place', language)}
+              />
+            ) : placeTree.length > 0 ? (
               <>
-                {placeId && !showPlacePicker ? (
-                  <>
-                    <div className="edit-sheet__place-display">
-                      <span className="edit-sheet__place-path">
-                        {getPlacePath(placeId).map((p) => p.label).join(' › ')}
-                      </span>
-                      <button
-                        type="button"
-                        className="btn-ghost-gold edit-sheet__place-change"
-                        onClick={() => setShowPlacePicker(true)}
-                      >
-                        {ui('places.change', language)}
-                      </button>
-                    </div>
-                  </>
-                ) : placeId === '' && !showPlacePicker ? (
-                  <>
-                    <input
-                      className="input-field edit-sheet__input"
-                      type="text"
-                      value={locationText}
-                      onChange={(e) => setLocationText(e.target.value)}
-                      placeholder="e.g. living room › desk › top drawer"
-                    />
-                    <button
-                      type="button"
-                      className="btn-ghost-gold edit-sheet__place-choose"
-                      onClick={() => setShowPlacePicker(true)}
-                    >
-                      {ui('places.choose_place', language)}
-                    </button>
-                  </>
-                ) : null}
-                {showPlacePicker && (
-                  <PlaceDrillDown
-                    placeTree={placeTree}
-                    onSelect={handlePlaceSelect}
-                    emptyOptionLabel={ui('places.no_place', language)}
-                    confirmLabel={ui('places.use_this_place', language)}
-                  />
+                {legacyLocationText && (
+                  <span className="edit-sheet__legacy-location">{legacyLocationText}</span>
                 )}
+                <button
+                  type="button"
+                  className="btn-ghost-gold edit-sheet__place-choose"
+                  onClick={() => setShowPlacePicker(true)}
+                >
+                  {ui('places.choose_place', language)}
+                </button>
               </>
             ) : (
-              <input
-                className="input-field edit-sheet__input"
-                type="text"
-                value={locationText}
-                onChange={(e) => setLocationText(e.target.value)}
-                placeholder="e.g. living room › desk › top drawer"
-              />
+              <>
+                {legacyLocationText && (
+                  <span className="edit-sheet__legacy-location">{legacyLocationText}</span>
+                )}
+                <span className="edit-sheet__no-places-hint">
+                  {ui('places.create_places_hint', language)}
+                </span>
+              </>
             )}
           </div>
 
-          <PhotoUpload
-            householdId={householdId}
-            entryId={entry?.id ?? null}
-            photoPath={photoPath}
-            onPhotoChange={setPhotoPath}
-            onUploadingChange={setPhotoUploading}
-          />
+          <div className="edit-sheet__field">
+            <label className="edit-sheet__label">{ui('add.photo', language)}</label>
+            <PhotoUpload
+              householdId={householdId}
+              entryId={entry?.id ?? null}
+              photoPath={photoPath}
+              onPhotoChange={setPhotoPath}
+              onUploadingChange={setPhotoUploading}
+            />
+          </div>
 
           {customFields && customFields.length > 0 && (
             <CustomFieldInputs
