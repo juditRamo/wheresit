@@ -54,6 +54,16 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+@media (min-width: 1024px) {
+  :root {
+    --font-size-xs: 12px;
+    --font-size-sm: 13px;
+    --font-size-body: 16px;
+    --font-size-lg: 19px;
+    --font-size-xl: 26px;
+  }
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     --bg-page: #F4EDE4;
