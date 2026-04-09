@@ -376,6 +376,7 @@ Deno.serve(async (req) => {
             event_type: 'move_object',
             entity_type: 'storage_entry',
             entity_id: moveTarget.id,
+            entity_name: originalItemName,
             payload: {
               item_name: originalItemName,
               from: {
@@ -418,6 +419,7 @@ Deno.serve(async (req) => {
               event_type: 'add_object',
               entity_type: 'storage_entry',
               entity_id: inserted.id,
+              entity_name: itemName,
               payload: {
                 item_name: itemName,
                 location_description: writeData.location_description,

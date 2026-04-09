@@ -41,7 +41,8 @@ export function recordHistoryEvent(
   eventType: HistoryEventType,
   entityType: HistoryEntityType,
   entityId: string,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
+  entityName?: string
 ): void {
   supabase.auth.getSession().then(({ data }) => {
     const actorId = data?.session?.user?.id ?? null
@@ -54,6 +55,7 @@ export function recordHistoryEvent(
         entity_type: entityType,
         entity_id: entityId,
         payload,
+        entity_name: entityName ?? (payload.item_name as string) ?? (payload.label as string) ?? null,
       })
       .then(({ error }) => {
         if (error) console.warn('[history_events] insert failed:', error.message)

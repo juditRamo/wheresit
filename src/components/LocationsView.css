@@ -252,6 +252,15 @@
   border-top: 1px solid var(--border-dark);
 }
 
+.locations__place--highlight {
+  animation: place-highlight 2s ease-out;
+}
+
+@keyframes place-highlight {
+  0%, 30% { background: rgba(201, 169, 98, 0.15); }
+  100% { background: transparent; }
+}
+
 .locations-view__type-icon {
   width: 32px;
   height: 32px;

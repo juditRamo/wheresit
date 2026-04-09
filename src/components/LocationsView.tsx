@@ -11,7 +11,7 @@ import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
 import { recordHistoryEvent } from '../lib/historyEvents'
 import { getPlaceIcon } from '../lib/placeIcons'
-import type { LocationRef } from '../types'
+import type { LocationRef, HistoryEntityType } from '../types'
 import { PlaceDrillDown } from './PlaceDrillDown'
 import { PlaceEditSheet } from './PlaceEditSheet'
 import { PlaceIconPicker } from './PlaceIconPicker'
@@ -23,6 +23,8 @@ import './LocationsView.css'
 interface LocationsViewProps {
   householdId: string
   onNavigateToItems?: (filter: LocationRef) => void
+  highlightEntity?: { type: HistoryEntityType; id: string } | null
+  onClearHighlight?: () => void
 }
 
 function flattenTree(tree: PlaceWithChildren[]): PlaceWithChildren[] {
@@ -37,7 +39,7 @@ function flattenTree(tree: PlaceWithChildren[]): PlaceWithChildren[] {
   return out
 }
 
-export function LocationsView({ householdId, onNavigateToItems }: LocationsViewProps) {
+export function LocationsView({ householdId, onNavigateToItems, highlightEntity, onClearHighlight }: LocationsViewProps) {
   const { placeTree, loading, createPlace, updatePlace, movePlace, deletePlace, reorderPlaces, refetch, getPlacePath, getDescendantIds } = usePlaces(householdId)
   const { entries, createEntry, updateEntry, deleteEntry, deletePhoto, refetch: refetchEntries } = useStorageEntries(householdId)
   const { fields: customFields, getEntryValues, saveFormValues, createOption } = useCustomFields(householdId)
@@ -67,6 +69,22 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
   const allPlacesFlat = useMemo(() => flattenTree(placeTree), [placeTree])
   const placeIdToPlace = useMemo(() => new Map(allPlacesFlat.map((p) => [p.id, p])), [allPlacesFlat])
   const itemCountByPlace = (placeId: string) => entries.filter((e) => e.place_id === placeId).length
+
+  // Scroll to and highlight place when navigated from Activity tab
+  useEffect(() => {
+    if (!highlightEntity || highlightEntity.type !== 'place') return
+    const el = document.querySelector(`[data-entity-id="${highlightEntity.id}"]`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el.classList.add('locations__place--highlight')
+      const timer = setTimeout(() => {
+        el.classList.remove('locations__place--highlight')
+        onClearHighlight?.()
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+    onClearHighlight?.()
+  }, [highlightEntity, onClearHighlight])
 
   // Current place and visible children
   const currentPlace = path.length > 0 ? placeIdToPlace.get(path[path.length - 1]) ?? null : null
@@ -198,9 +216,16 @@ export function LocationsView({ householdId, onNavigateToItems }: LocationsViewP
     if (!editing) return
     const err = await updatePlace(editing.id, { label: data.label, icon: data.icon, attributes: data.attributes })
     if (!err?.error) {
+      const changes: Record<string, { from: unknown; to: unknown }> = {}
+      if (editing.label !== data.label) {
+        changes[ui('activity.field_name', language)] = { from: editing.label, to: data.label }
+      }
+      if (editing.icon !== data.icon) {
+        changes[ui('activity.field_icon', language)] = { from: editing.icon, to: data.icon }
+      }
       recordHistoryEvent(householdId, 'edit_place', 'place', editing.id, {
         label: data.label,
-        changes: { label: data.label, icon: data.icon, attributes: data.attributes },
+        changes,
       })
     }
     setEditing(null)

@@ -15,8 +15,9 @@ import { BottomNav, type NavTab } from './components/BottomNav'
 import { Chat } from './components/Chat'
 import { InventoryView } from './components/InventoryView'
 import { LocationsView } from './components/LocationsView'
+import { ActivityView } from './components/ActivityView'
 import { SettingsView } from './components/SettingsView'
-import type { LocationRef } from './types'
+import type { LocationRef, HistoryEntityType } from './types'
 import './App.css'
 
 function AppInner() {
@@ -38,6 +39,7 @@ function AppInner() {
 
   const [activeTab, setActiveTab] = useState<NavTab>('items')
   const [itemsFilter, setItemsFilter] = useState<LocationRef | null>(null)
+  const [highlightEntity, setHighlightEntity] = useState<{ type: HistoryEntityType; id: string } | null>(null)
   // Initialize back-button navigation
   useEffect(() => { initBackNavigation() }, [])
 
@@ -56,6 +58,11 @@ function AppInner() {
   const handleNavigateToItems = useCallback((filter: LocationRef) => {
     setItemsFilter(filter)
     setActiveTab('items')
+  }, [])
+
+  const handleNavigateToEntity = useCallback((entityType: HistoryEntityType, entityId: string) => {
+    setHighlightEntity({ type: entityType, id: entityId })
+    setActiveTab(entityType === 'storage_entry' ? 'items' : 'locations')
   }, [])
 
   const handleTabNavigate = useCallback((tab: NavTab) => {
@@ -117,10 +124,13 @@ function AppInner() {
             <Chat householdId={selectedId} onNavigateToItems={handleNavigateToItems} />
           )}
           {activeTab === 'items' && selectedId && (
-            <InventoryView householdId={selectedId} filter={itemsFilter} onClearFilter={() => setItemsFilter(null)} />
+            <InventoryView householdId={selectedId} filter={itemsFilter} onClearFilter={() => setItemsFilter(null)} highlightEntity={highlightEntity} onClearHighlight={() => setHighlightEntity(null)} />
           )}
           {activeTab === 'locations' && selectedId && (
-            <LocationsView householdId={selectedId} onNavigateToItems={handleNavigateToItems} />
+            <LocationsView householdId={selectedId} onNavigateToItems={handleNavigateToItems} highlightEntity={highlightEntity} onClearHighlight={() => setHighlightEntity(null)} />
+          )}
+          {activeTab === 'activity' && selectedId && (
+            <ActivityView householdId={selectedId} onNavigateToEntity={handleNavigateToEntity} />
           )}
           {activeTab === 'settings' && selectedHousehold && selectedId && (
             <SettingsView

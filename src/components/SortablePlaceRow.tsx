@@ -39,6 +39,7 @@ export function SortablePlaceRow({ place, itemCount, onDrillIn, onActions }: Sor
       ref={setNodeRef}
       style={style}
       className="locations-view__place-row"
+      data-entity-id={place.id}
       onClick={() => onDrillIn(place.id)}
     >
       <button

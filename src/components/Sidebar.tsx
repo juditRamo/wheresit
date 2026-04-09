@@ -1,4 +1,4 @@
-import { MessageSquare, Archive, MapPin, Settings } from 'lucide-react'
+import { MessageSquare, Archive, MapPin, Settings, Clock } from 'lucide-react'
 import type { NavTab } from './BottomNav'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
@@ -13,6 +13,7 @@ const navItems: { tab: NavTab; icon: typeof MessageSquare }[] = [
   { tab: 'items', icon: Archive },
   { tab: 'locations', icon: MapPin },
   { tab: 'chat', icon: MessageSquare },
+  { tab: 'activity', icon: Clock },
 ]
 
 export function Sidebar({ active, onNavigate }: SidebarProps) {

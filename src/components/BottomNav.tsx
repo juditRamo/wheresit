@@ -1,9 +1,9 @@
-import { MessageSquare, Archive, MapPin, Settings } from 'lucide-react'
+import { MessageSquare, Archive, MapPin, Settings, Clock } from 'lucide-react'
 import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
 import './BottomNav.css'
 
-export type NavTab = 'chat' | 'items' | 'locations' | 'settings'
+export type NavTab = 'chat' | 'items' | 'locations' | 'activity' | 'settings'
 
 interface BottomNavProps {
   active: NavTab
@@ -35,6 +35,13 @@ export function BottomNav({ active, onNavigate }: BottomNavProps) {
       >
         <MessageSquare size={20} />
         <span className="bottom-nav__label">{ui('nav.chat', language)}</span>
+      </button>
+      <button
+        className={`bottom-nav__item ${active === 'activity' ? 'bottom-nav__item--active' : ''}`}
+        onClick={() => onNavigate('activity')}
+      >
+        <Clock size={20} />
+        <span className="bottom-nav__label">{ui('activity.title', language)}</span>
       </button>
       <button
         className={`bottom-nav__item ${active === 'settings' ? 'bottom-nav__item--active' : ''}`}

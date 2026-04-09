@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useBackHandler } from '../hooks/useBackHandler'
 import {
   Search,
@@ -11,7 +11,6 @@ import {
   Headphones,
   Package,
   Home,
-  History,
 } from 'lucide-react'
 import { useStorageEntries } from '../hooks/useStorageEntries'
 import { usePlaces } from '../hooks/usePlaces'
@@ -20,9 +19,8 @@ import { useLanguage } from '../i18n/LanguageContext'
 import { ui } from '../i18n/ui'
 import { getPlaceIcon } from '../lib/placeIcons'
 import { recordHistoryEvent } from '../lib/historyEvents'
-import type { StorageEntry, Place, LocationRef, CustomFieldValue } from '../types'
+import type { StorageEntry, Place, LocationRef, CustomFieldValue, HistoryEntityType } from '../types'
 import { ItemEditSheet } from './ItemEditSheet'
-import { ActivityFeed } from './ActivityFeed'
 import { CustomFieldFilters } from './CustomFieldFilters'
 import type { CustomFieldFilter } from './CustomFieldFilters'
 import { useToast } from '../toast/ToastContext'
@@ -32,6 +30,8 @@ interface InventoryViewProps {
   householdId: string
   filter?: LocationRef | null
   onClearFilter: () => void
+  highlightEntity?: { type: HistoryEntityType; id: string } | null
+  onClearHighlight?: () => void
 }
 
 type SortTab = 'place' | 'recent'
@@ -118,7 +118,7 @@ function groupByPlace(entries: StorageEntry[], places: Array<{ id: string; label
   return groups
 }
 
-export function InventoryView({ householdId, filter, onClearFilter }: InventoryViewProps) {
+export function InventoryView({ householdId, filter, onClearFilter, highlightEntity, onClearHighlight }: InventoryViewProps) {
   const { entries, loading, refetch, updateEntry, deleteEntry, deletePhoto, createEntry } = useStorageEntries(householdId)
   const { getDescendantIds, getPlaceById, getPlacePath, places } = usePlaces(householdId)
   const { fields: customFields, valuesByEntry, optionLabelMap, getEntryValues, saveFormValues, createOption } = useCustomFields(householdId)
@@ -129,7 +129,6 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
   const [editingEntry, setEditingEntry] = useState<StorageEntry | null>(null)
   const [showAddSheet, setShowAddSheet] = useState(false)
   const [placeChipFilter, setPlaceChipFilter] = useState<string | null>(null)
-  const [showActivity, setShowActivity] = useState(false)
   const [customFilters, setCustomFilters] = useState<CustomFieldFilter[]>([])
 
   const handleSync = useCallback(async () => {
@@ -137,7 +136,22 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
     toast.info(ui('inventory.synced', language))
   }, [refetch, toast, language])
 
-  useBackHandler(showActivity, () => setShowActivity(false))
+  // Scroll to and highlight entity when navigated from Activity tab
+  useEffect(() => {
+    if (!highlightEntity || highlightEntity.type !== 'storage_entry') return
+    const el = document.querySelector(`[data-entity-id="${highlightEntity.id}"]`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el.classList.add('inventory__item--highlight')
+      const timer = setTimeout(() => {
+        el.classList.remove('inventory__item--highlight')
+        onClearHighlight?.()
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+    onClearHighlight?.()
+  }, [highlightEntity, onClearHighlight])
+
   useBackHandler(!!editingEntry, () => setEditingEntry(null))
   useBackHandler(showAddSheet, () => setShowAddSheet(false))
 
@@ -265,9 +279,42 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
           },
         })
       } else {
+        const changes: Record<string, { from: unknown; to: unknown }> = {}
+        if (editingEntry.item_name !== data.item_name) {
+          changes[ui('activity.field_name', language)] = { from: editingEntry.item_name, to: data.item_name }
+        }
+        if ((editingEntry.photo_path ?? null) !== (data.photo_path ?? null)) {
+          changes[ui('activity.field_photo', language)] = { from: editingEntry.photo_path ? '✓' : null, to: data.photo_path ? '✓' : null }
+        }
+        // Diff custom field values
+        if (fieldValues && customFields.length > 0) {
+          const prev = getEntryValues(editingEntry.id)
+          for (const field of customFields) {
+            const newVal = fieldValues[field.id]
+            const oldCfv = prev[field.id]
+            const formatCfVal = (raw: unknown): string | null => {
+              if (raw == null || raw === '') return null
+              if (field.field_type === 'select') return optionLabelMap.get(raw as string) ?? String(raw)
+              if (field.field_type === 'multiselect') {
+                const arr = raw as string[]
+                return arr.length ? arr.map(id => optionLabelMap.get(id) ?? id).join(', ') : null
+              }
+              if (field.field_type === 'boolean') return raw ? ui('common.yes', language) : ui('common.no', language)
+              return String(raw)
+            }
+            const oldRaw = oldCfv
+              ? (oldCfv.value_text ?? oldCfv.value_number ?? oldCfv.value_boolean ?? oldCfv.value_option ?? oldCfv.value_options ?? oldCfv.value_date ?? null)
+              : null
+            const oldStr = formatCfVal(oldRaw)
+            const newStr = formatCfVal(newVal)
+            if (oldStr !== newStr) {
+              changes[field.name] = { from: oldStr, to: newStr }
+            }
+          }
+        }
         recordHistoryEvent(householdId, 'edit_object', 'storage_entry', editingEntry.id, {
           item_name: data.item_name,
-          changes: { ...data },
+          changes,
         })
       }
       if (fieldValues) {
@@ -321,13 +368,6 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
           </h1>
         </div>
         <div className="inventory__header-right">
-          <button
-            className={`inventory__icon-btn ${showActivity ? 'inventory__icon-btn--active' : ''}`}
-            onClick={() => setShowActivity(true)}
-            aria-label={ui('activity.title', language)}
-          >
-            <History size={16} />
-          </button>
           <button className="inventory__icon-btn" onClick={handleSync} aria-label="Sync">
             <RefreshCw size={16} className={loading ? 'inventory__spin' : ''} />
           </button>
@@ -446,6 +486,7 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
                 return (
                   <div
                     key={entry.id}
+                    data-entity-id={entry.id}
                     className="inventory__item inventory__item--clickable"
                     onClick={() => setEditingEntry(entry)}
                   >
@@ -486,24 +527,6 @@ export function InventoryView({ householdId, filter, onClearFilter }: InventoryV
           </div>
         )}
       </div>
-
-      {/* Activity slide-over panel */}
-      {showActivity && (
-        <>
-          <div className="inventory__overlay" onClick={() => setShowActivity(false)} />
-          <div className="inventory__activity-panel">
-            <div className="inventory__activity-header">
-              <h2 className="inventory__activity-title">{ui('activity.title', language)}</h2>
-              <button className="inventory__icon-btn" onClick={() => setShowActivity(false)}>
-                <X size={16} />
-              </button>
-            </div>
-            <div className="inventory__activity-body">
-              <ActivityFeed householdId={householdId} />
-            </div>
-          </div>
-        </>
-      )}
 
       {/* Edit sheet */}
       {editingEntry && (

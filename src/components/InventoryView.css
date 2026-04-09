@@ -325,6 +325,15 @@
   background: rgba(201, 169, 98, 0.08);
 }
 
+.inventory__item--highlight {
+  animation: inventory-highlight 2s ease-out;
+}
+
+@keyframes inventory-highlight {
+  0%, 30% { background: rgba(201, 169, 98, 0.15); }
+  100% { background: transparent; }
+}
+
 .inventory__item-thumb {
   width: 100%;
   height: 100%;
