@@ -6,17 +6,19 @@ import { useProfile } from './hooks/useProfile'
 import { LanguageProvider, useLanguage } from './i18n/LanguageContext'
 import { ThemeProvider, useTheme } from './theme/ThemeContext'
 import { ToastProvider } from './toast/ToastContext'
+import { CustomFieldsProvider } from './hooks/CustomFieldsContext'
 import type { ThemeMode } from './theme/ThemeContext'
 import type { Lang } from './i18n/picklists'
-import { LandingPage } from './components/LandingPage'
-import { HouseholdSelect } from './components/HouseholdSelect'
-import { Sidebar } from './components/Sidebar'
-import { BottomNav, type NavTab } from './components/BottomNav'
-import { Chat } from './components/Chat'
-import { InventoryView } from './components/InventoryView'
-import { LocationsView } from './components/LocationsView'
-import { ActivityView } from './components/ActivityView'
-import { SettingsView } from './components/SettingsView'
+import { LandingPage } from './components/layout/LandingPage'
+import { HouseholdSelect } from './components/layout/HouseholdSelect'
+import { Sidebar } from './components/layout/Sidebar'
+import { BottomNav, type NavTab } from './components/layout/BottomNav'
+import { ChatView } from './components/views/chat/ChatView'
+import { InventoryView } from './components/views/inventory/InventoryView'
+import { LocationsView } from './components/views/locations/LocationsView'
+import { ActivityView } from './components/views/activity/ActivityView'
+import { SettingsView } from './components/views/settings/SettingsView'
+import { ui } from './i18n/ui'
 import type { LocationRef, HistoryEntityType } from './types'
 import './App.css'
 
@@ -34,7 +36,7 @@ function AppInner() {
   } = useHousehold(user?.id)
   const { profile, updateProfile, loading: profileLoading } = useProfile(user?.id)
   const { setTheme } = useTheme()
-  const { setLanguage } = useLanguage()
+  const { language, setLanguage } = useLanguage()
   const syncedProfileRef = useRef<string | null>(null)
 
   const [activeTab, setActiveTab] = useState<NavTab>('items')
@@ -75,7 +77,7 @@ function AppInner() {
   if (authLoading) {
     return (
       <div className="app app--loading">
-        <p>Loading…</p>
+        <p>{ui('common.loading', language)}</p>
       </div>
     )
   }
@@ -110,18 +112,19 @@ function AppInner() {
   if (!hasHousehold && (householdLoading || (households.length > 0 && !selectedId))) {
     return (
       <div className="app app--loading">
-        <p>Loading household…</p>
+        <p>{ui('common.loading', language)}</p>
       </div>
     )
   }
 
   return (
+    <CustomFieldsProvider householdId={selectedId!}>
     <div className="app app--main">
       <Sidebar active={activeTab} onNavigate={handleTabNavigate} />
       <div className="app__body">
         <main className="app__content">
           {activeTab === 'chat' && selectedId && (
-            <Chat householdId={selectedId} onNavigateToItems={handleNavigateToItems} />
+            <ChatView householdId={selectedId} onNavigateToItems={handleNavigateToItems} />
           )}
           {activeTab === 'items' && selectedId && (
             <InventoryView householdId={selectedId} filter={itemsFilter} onClearFilter={() => setItemsFilter(null)} highlightEntity={highlightEntity} onClearHighlight={() => setHighlightEntity(null)} />
@@ -159,6 +162,7 @@ function AppInner() {
         <BottomNav active={activeTab} onNavigate={handleTabNavigate} />
       </div>
     </div>
+    </CustomFieldsProvider>
   )
 }
 

@@ -1,0 +1,53 @@
+@import '../edit-sheet.css';
+
+.edit-sheet__place-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.edit-sheet__place-path {
+  font-size: 13px;
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+}
+
+.edit-sheet__place-change,
+.edit-sheet__place-choose {
+  /* visual styles from .btn-ghost-gold; override sizing */
+  padding: 8px 14px;
+  min-height: auto;
+  font-size: 12px;
+}
+
+.edit-sheet__legacy-location {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: 8px 0;
+}
+
+.edit-sheet__no-places-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 8px 0;
+}
+
+/* Delete confirmation dialog */
+.edit-sheet__confirm {
+  padding: 20px;
+  text-align: center;
+}
+
+.edit-sheet__confirm-text {
+  font-size: 14px;
+  color: var(--text-primary);
+  margin: 0 0 20px;
+}
+
+.edit-sheet__confirm-actions {
+  display: flex;
+  gap: 10px;
+}

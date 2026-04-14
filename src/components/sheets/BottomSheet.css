@@ -1,0 +1,61 @@
+.bottom-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  animation: bottomSheetFadeIn 0.2s ease;
+}
+
+@keyframes bottomSheetFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-dark);
+  border-radius: 16px 16px 0 0;
+  z-index: 101;
+  animation: bottomSheetSlideUp 0.25s ease;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@keyframes bottomSheetSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.bottom-sheet__handle {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 4px;
+}
+
+.bottom-sheet__handle-bar {
+  width: 36px;
+  height: 4px;
+  background: var(--border-light);
+  border-radius: 2px;
+}
+
+@media (min-width: 1024px) {
+  .bottom-sheet {
+    max-width: 520px;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: bottomSheetSlideUpDesktop 0.25s ease;
+  }
+
+  @keyframes bottomSheetSlideUpDesktop {
+    from { transform: translateX(-50%) translateY(100%); }
+    to { transform: translateX(-50%) translateY(0); }
+  }
+}

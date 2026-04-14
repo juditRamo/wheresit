@@ -235,6 +235,52 @@ const strings: Record<string, { en: string; es: string }> = {
   'cf.from': { en: 'From', es: 'Desde' },
   'cf.to': { en: 'To', es: 'Hasta' },
 
+  // Household select
+  'household.label': { en: 'Household', es: 'Hogar' },
+  'household.new': { en: '+ New household', es: '+ Nuevo hogar' },
+  'household.join_with_code': { en: 'Join with code', es: 'Unirse con código' },
+  'household.setup_title': { en: 'Set up your household', es: 'Configura tu hogar' },
+  'household.new_title': { en: 'New household', es: 'Nuevo hogar' },
+  'household.join_title': { en: 'Join with code', es: 'Unirse con código' },
+  'household.setup_desc': { en: 'Create a household to start tracking where you store things, or join one with a code.', es: 'Crea un hogar para empezar a recordar dónde guardas las cosas, o únete a uno con un código.' },
+  'household.create_another': { en: 'Create another household.', es: 'Crear otro hogar.' },
+  'household.join_desc': { en: 'Enter the household ID or invite code to join.', es: 'Introduce el ID del hogar o código de invitación para unirte.' },
+  'household.create': { en: 'Create household', es: 'Crear hogar' },
+  'household.join_tab': { en: 'Join with code', es: 'Unirse con código' },
+  'household.name_placeholder': { en: 'Household name (e.g. Home)', es: 'Nombre del hogar (ej. Casa)' },
+  'household.create_btn': { en: 'Create', es: 'Crear' },
+  'household.back': { en: 'Back', es: 'Volver' },
+  'household.code_placeholder': { en: 'Paste household ID or invite code', es: 'Pega el ID o código de invitación' },
+  'household.join_btn': { en: 'Join', es: 'Unirse' },
+  'household.created': { en: 'Household created.', es: 'Hogar creado.' },
+  'household.joined': { en: 'Joined household.', es: 'Te uniste al hogar.' },
+
+  // Auth extras
+  'auth.hide_password': { en: 'Hide password', es: 'Ocultar contraseña' },
+  'auth.show_password': { en: 'Show password', es: 'Mostrar contraseña' },
+
+  // Landing extras
+  'landing.toggle_theme': { en: 'Toggle theme', es: 'Cambiar tema' },
+
+  // Chat extras
+  'chat.thinking': { en: 'Thinking...', es: 'Pensando...' },
+  'chat.voice_input': { en: 'Voice input', es: 'Entrada de voz' },
+  'chat.send': { en: 'Send message', es: 'Enviar mensaje' },
+
+  // Confirm extras
+  'confirm.place_match': { en: 'Do you mean the place "{place}"?', es: '¿Te refieres al lugar "{place}"?' },
+
+  // Common
+  'common.loading': { en: 'Loading…', es: 'Cargando…' },
+
+  // Location extras
+  'locations.attributes': { en: 'Attributes', es: 'Atributos' },
+  'locations.attributes_placeholder': { en: 'color: beige, position: behind sofa', es: 'color: beige, posición: detrás del sofá' },
+
+  // Settings extras
+  'settings.password_mismatch': { en: 'Passwords do not match', es: 'Las contraseñas no coinciden' },
+  'settings.password_too_short': { en: 'At least 6 characters', es: 'Mínimo 6 caracteres' },
+
   // Place drill-down picker
   'places.move_here': { en: 'Move here', es: 'Mover aquí' },
   'places.use_this_place': { en: 'Use this place', es: 'Usar este lugar' },

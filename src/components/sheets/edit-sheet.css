@@ -1,0 +1,106 @@
+.edit-sheet__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 20px 16px;
+}
+
+.edit-sheet__title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.edit-sheet__close {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  border-radius: 50%;
+}
+
+.edit-sheet__close:hover,
+.edit-sheet__close:active {
+  background: var(--border-dark);
+}
+
+.edit-sheet__form {
+  padding: 0 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.edit-sheet__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.edit-sheet__label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.edit-sheet__input {
+  /* visual styles from .input-field; override border-radius */
+  border-radius: 10px;
+  padding: 0 14px;
+}
+
+.edit-sheet__select {
+  height: 44px;
+  padding: 0 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-dark);
+  border-radius: 10px;
+  font-size: var(--font-size-body);
+  color: var(--text-primary);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%238A7D6B' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+
+.edit-sheet__select:focus {
+  border-color: var(--gold-primary);
+}
+
+.edit-sheet__actions {
+  display: flex;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-dark);
+}
+
+.edit-sheet__btn {
+  flex: 1;
+  border-radius: 10px;
+}
+
+.edit-sheet__btn--primary {
+  /* visual styles from .btn-gold */
+}
+
+.edit-sheet__btn--danger {
+  background: var(--danger-dim);
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
+}
+
+.edit-sheet__btn--danger:hover,
+.edit-sheet__btn--danger:active {
+  background: var(--danger-hover);
+}
+
+.edit-sheet__btn--secondary {
+  /* visual styles from .btn-secondary */
+}

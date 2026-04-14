@@ -36,11 +36,22 @@ A bilingual (English/Spanish) chat-style webapp to remember where you store thin
 
 ### Frontend structure
 
-- `src/App.tsx` — main shell: auth gate > household gate > tab navigation (chat, items, locations, search)
+- `src/App.tsx` — main shell: auth gate > household gate > tab navigation (chat, items, locations, activity, settings)
+- `src/components/` — all UI components, organized by role:
+  - `views/` — one folder per tab/view, each with `ViewName.tsx`, `.css`, optional `helpers.ts`, and `components/` subfolder
+    - `chat/` — ChatView, MessageList, MultiResultCard, ConfirmCards
+    - `inventory/` — InventoryView, helpers (icon/grouping utilities)
+    - `locations/` — LocationsView, SortablePlaceRow, LocationActionSheet
+    - `activity/` — ActivityView, ActivityEventRow, helpers (date/time formatters)
+    - `settings/` — SettingsView, SettingsProfileTab, SettingsHouseholdTab, CustomFieldsManager
+  - `layout/` — app shell: BottomNav, Sidebar, Auth, LandingPage, HouseholdSelect
+  - `sheets/` — BottomSheet (shared overlay+handle pattern), SheetHeader, SheetActions, edit-sheet.css (shared form styles), ItemEditSheet, PlaceEditSheet
+  - `pickers/` — PlaceDrillDown, PlaceIconPicker
+  - `fields/` — CustomFieldInputs, CustomFieldFilters, PhotoUpload
 - `src/hooks/` — data hooks (`useAuth`, `useHousehold`, `useStoredItems`, `usePlaces`, `useProfile`, `useActivityFeed`, `useStorageEntries`)
-- `src/components/` — one component per view/feature, each with its own CSS file
 - `src/i18n/` — `LanguageContext` (React context for en/es), `ui.ts` (UI string translations), `picklists.ts` (category/room/furniture labels)
 - `src/theme/` — `ThemeContext` for light/dark/system mode
+- `src/toast/` — toast notification system
 - `src/api/chat.ts` — client-side wrapper for calling the chat Edge Function
 - `src/lib/historyEvents.ts` — helper for recording history events from the frontend
 - `src/lib/storage.ts` — async storage wrapper (Capacitor Preferences on native, localStorage on web)
@@ -54,3 +65,12 @@ A bilingual (English/Spanish) chat-style webapp to remember where you store thin
 - Types are centralized in `src/types.ts`
 - Supabase migrations are ordered by date in `supabase/migrations/`
 - Environment: `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env` (see `.env.example`)
+
+### Component guidelines
+
+- **Views** go in `src/components/views/<tab>/`. Each view has a main component, optional `helpers.ts` for pure functions, and `components/` for sub-components.
+- **Shared components** (used by 2+ views) go in `src/components/<category>/`.
+- **Layout components** (app shell, nav, auth gates) go in `src/components/layout/`.
+- **Bottom sheets** should use the `<BottomSheet>` wrapper from `src/components/sheets/BottomSheet.tsx` for overlay, handle bar, and animations. Pass view-specific content as children.
+- Each `.tsx` component has a matching `.css` file with BEM-style class names scoped to the component.
+- Pure helper functions (formatters, grouping, icon lookups) should be extracted to `helpers.ts` files co-located with their view.
