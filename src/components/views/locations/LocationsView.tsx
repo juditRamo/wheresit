@@ -202,9 +202,9 @@ export function LocationsView({ householdId, onNavigateToItems, highlightEntity,
     }
   }
 
-  async function handleSaveEdit(data: { label: string; icon: string; attributes: Record<string, string> }) {
+  async function handleSaveEdit(data: { label: string; icon: string }) {
     if (!editing) return
-    const err = await updatePlace(editing.id, { label: data.label, icon: data.icon, attributes: data.attributes })
+    const err = await updatePlace(editing.id, { label: data.label, icon: data.icon })
     if (!err?.error) {
       const changes: Record<string, { from: unknown; to: unknown }> = {}
       if (editing.label !== data.label) {
@@ -252,7 +252,6 @@ export function LocationsView({ householdId, onNavigateToItems, highlightEntity,
       icon: p.icon,
       label,
       parent_place_id: p.parent_place_id ?? null,
-      attributes: p.attributes ?? {},
     })
     if (!error && created) {
       recordHistoryEvent(householdId, 'add_place', 'place', created.id, {

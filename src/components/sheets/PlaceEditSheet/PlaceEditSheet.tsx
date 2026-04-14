@@ -10,7 +10,7 @@ import '../edit-sheet.css'
 
 interface PlaceEditSheetProps {
   place: PlaceWithChildren
-  onSave: (data: { label: string; icon: string; attributes: Record<string, string> }) => void
+  onSave: (data: { label: string; icon: string }) => void
   onClose: () => void
 }
 
@@ -18,17 +18,9 @@ export function PlaceEditSheet({ place, onSave, onClose }: PlaceEditSheetProps) 
   const { language } = useLanguage()
   const [label, setLabel] = useState(place.label)
   const [icon, setIcon] = useState(place.icon)
-  const [attributesText, setAttributesText] = useState(
-    Object.entries(place.attributes ?? {}).map(([k, v]) => `${k}: ${v}`).join(', ')
-  )
 
   function handleSave() {
-    const attrs: Record<string, string> = {}
-    for (const part of attributesText.split(',').map((s) => s.trim()).filter(Boolean)) {
-      const [k, v] = part.split(':').map((s) => s.trim())
-      if (k && v) attrs[k] = v
-    }
-    onSave({ label: label.trim(), icon, attributes: attrs })
+    onSave({ label: label.trim(), icon })
   }
 
   return (
@@ -51,17 +43,6 @@ export function PlaceEditSheet({ place, onSave, onClose }: PlaceEditSheetProps) 
         <div className="edit-sheet__field">
           <label className="edit-sheet__label">{ui('locations.icon', language)}</label>
           <PlaceIconPicker selected={icon} onSelect={setIcon} compact />
-        </div>
-
-        <div className="edit-sheet__field">
-          <label className="edit-sheet__label">{ui('locations.attributes', language)}</label>
-          <input
-            className="input-field edit-sheet__input"
-            type="text"
-            value={attributesText}
-            onChange={(e) => setAttributesText(e.target.value)}
-            placeholder={ui('locations.attributes_placeholder', language)}
-          />
         </div>
       </div>
 

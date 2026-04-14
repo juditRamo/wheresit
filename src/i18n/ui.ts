@@ -273,10 +273,6 @@ const strings: Record<string, { en: string; es: string }> = {
   // Common
   'common.loading': { en: 'Loading…', es: 'Cargando…' },
 
-  // Location extras
-  'locations.attributes': { en: 'Attributes', es: 'Atributos' },
-  'locations.attributes_placeholder': { en: 'color: beige, position: behind sofa', es: 'color: beige, posición: detrás del sofá' },
-
   // Settings extras
   'settings.password_mismatch': { en: 'Passwords do not match', es: 'Las contraseñas no coinciden' },
   'settings.password_too_short': { en: 'At least 6 characters', es: 'Mínimo 6 caracteres' },

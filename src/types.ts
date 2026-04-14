@@ -30,7 +30,6 @@ export interface Place {
   icon: string
   label: string
   parent_place_id: string | null
-  attributes: Record<string, string>
   canonical_key: string | null
   sort_order: number
   created_at: string
@@ -87,7 +86,7 @@ export interface PendingUpdate {
 export interface PendingPlaceMatch {
   suggestedPlaceId: string
   suggestedPlaceLabel: string
-  locationPath: Array<{ type: string; label: string; attributes?: Record<string, string> }>
+  locationPath: Array<{ type: string; label: string }>
   confidence: 'low' | 'medium'
 }
 

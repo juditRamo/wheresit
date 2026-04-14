@@ -10,7 +10,6 @@ export type Lang = 'en' | 'es'
 export interface LocationPathSegment {
   type: string
   label: string
-  attributes?: Record<string, string>
 }
 
 export interface LLMIntent {
@@ -139,7 +138,7 @@ You MUST respond with a JSON object only (no markdown, no extra text).
 **Existing places** (use to match or disambiguate; return matched_place_id when the user clearly refers to one):
 ${placesSummary || '(none yet)'}
 
-**For STORE**: Extract "item_name" (the item) and "location_path": array of { type, label, attributes? }. Types are free-form: room, desk, drawer, box, shelf, table, etc.
+**For STORE**: Extract "item_name" (the item) and "location_path": array of { type, label }. Types are free-form: room, desk, drawer, box, shelf, table, etc.
 
 Labels must be exact substrings from the user's message. If they say "cajonera" write "cajonera", not "Cómoda". If they say "despacho de Judit" write "despacho de Judit", not "Oficina". If they say "segundo cajón" write "segundo cajón", not "Cajón del Medio".
 
@@ -150,7 +149,7 @@ Example (es): "En el segundo cajón de la cajonera del despacho de Judit están 
 **For QUERY**: Extract "query_item".
 **For QUERY_LOCATION**: Extract "query_location" (the place description).
 **For DESCRIBE_PLACE**: Extract "location_path" or "location_paths" (array of paths) for the place(s) and hierarchy being described. Use the user's EXACT words for "label" (no translation or synonymizing).
-Example: "The living room has a small table behind the sofa. On the table there's a beige box" -> {"intent":"DESCRIBE_PLACE","language":"en","location_paths":[[{"type":"room","label":"living room"},{"type":"furniture","label":"table","attributes":{"position":"behind sofa","size":"small"}},{"type":"box","label":"box","attributes":{"color":"beige"}}]]}
+Example: "The living room has a small table behind the sofa. On the table there's a beige box" -> {"intent":"DESCRIBE_PLACE","language":"en","location_paths":[[{"type":"room","label":"living room"},{"type":"furniture","label":"small table behind the sofa"},{"type":"box","label":"beige box"}]]}
 Example (es): "En el Despacho de Judit hay una cajonera" -> {"intent":"DESCRIBE_PLACE","language":"es","location_paths":[[{"type":"room","label":"Despacho de Judit"},{"type":"furniture","label":"cajonera"}]]}
 
 Always respond with valid JSON only.`

@@ -36,7 +36,7 @@ export function usePlaces(householdId: string | null) {
   const placeTree = useMemo((): PlaceWithChildren[] => {
     const byId = new Map<string, PlaceWithChildren>()
     for (const p of places) {
-      byId.set(p.id, { ...p, attributes: p.attributes ?? {}, children: [] })
+      byId.set(p.id, { ...p, children: [] })
     }
     const roots: PlaceWithChildren[] = []
     for (const p of byId.values()) {
@@ -67,7 +67,6 @@ export function usePlaces(householdId: string | null) {
       label: string
       icon?: string
       parent_place_id?: string | null
-      attributes?: Record<string, string>
       canonical_key?: string | null
     }) => {
       if (!householdId) return { data: null as Place | null, error: new Error('No household') }
@@ -100,7 +99,6 @@ export function usePlaces(householdId: string | null) {
           icon: data.icon ?? 'map-pin',
           label: data.label,
           parent_place_id: parentId,
-          attributes: data.attributes ?? {},
           canonical_key: data.canonical_key ?? null,
           sort_order: maxSortOrder,
         })
@@ -115,7 +113,7 @@ export function usePlaces(householdId: string | null) {
   const updatePlace = useCallback(
     async (
       id: string,
-      changes: Partial<{ label: string; icon: string; attributes: Record<string, string> }>
+      changes: Partial<{ label: string; icon: string }>
     ) => {
       if (!householdId) return { error: new Error('No household') }
       const { error } = await supabase

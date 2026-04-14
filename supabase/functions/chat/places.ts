@@ -79,9 +79,9 @@ export async function normalizeLocationViaLLM(
 ): Promise<NormalizedLocation | null> {
   const prompt = `Parse this location description into a structured hierarchy. Return JSON only.
 Use the user's EXACT words for "label" - do not translate or substitute (e.g. "Despacho de Judit" stays "Despacho de Judit", "cajonera" stays "cajonera").
-Format: { "location_path": [ { "type": "room|furniture|shelf|drawer|box|folder|table|etc", "label": "user's exact words", "attributes": { "color": "x", "position": "y", "size": "z" } } ], "canonical_key": "type:label:..." }
+Format: { "location_path": [ { "type": "room|furniture|shelf|drawer|box|folder|table|etc", "label": "user's exact words" } ], "canonical_key": "type:label:..." }
 Examples:
-- "the table behind the sofa" -> {"location_path":[{"type":"room","label":"living room"},{"type":"furniture","label":"table","attributes":{"position":"behind sofa"}}],"canonical_key":"room:living_room:furniture:table_position:behind_sofa"}
+- "the table behind the sofa" -> {"location_path":[{"type":"room","label":"living room"},{"type":"furniture","label":"table behind the sofa"}],"canonical_key":"room:living_room:furniture:table_behind_the_sofa"}
 - "la cajonera del despacho de Judit" -> {"location_path":[{"type":"room","label":"despacho de Judit"},{"type":"furniture","label":"cajonera"}],"canonical_key":"room:despacho_de_judit:furniture:cajonera"}
 Input: "${description}"`
   const res = await fetch(
@@ -135,39 +135,24 @@ export async function resolveOrCreatePlace(
 
   const { data: allPlaces } = await supabase
     .from('places')
-    .select('id, canonical_key, label, attributes, parent_place_id')
+    .select('id, canonical_key, label, parent_place_id')
     .eq('household_id', householdId)
   const placesList = (allPlaces ?? []) as Array<{
     id: string
     canonical_key: string | null
     label: string
-    attributes?: Record<string, string>
     parent_place_id: string | null
   }>
 
   if (matchedPlaceId) {
     const found = placesList.find((p) => p.id === matchedPlaceId)
     if (found) {
-      const lastSeg = locationPath[locationPath.length - 1]
-      const newAttrs = lastSeg?.attributes ?? {}
-      const existingAttrs = found.attributes ?? {}
-      if (Object.keys(newAttrs).length > 0) {
-        const merged = { ...existingAttrs, ...newAttrs }
-        await supabase.from('places').update({ attributes: merged }).eq('id', found.id).eq('household_id', householdId)
-      }
       return { place_id: found.id, location_description: locationDescription, confidence: 'high' }
     }
   }
 
   const exactMatch = placesList.find((p) => p.canonical_key === fullCanonicalKey)
   if (exactMatch) {
-    const lastSeg = locationPath[locationPath.length - 1]
-    const newAttrs = lastSeg?.attributes ?? {}
-    const existingAttrs = exactMatch.attributes ?? {}
-    if (Object.keys(newAttrs).length > 0) {
-      const merged = { ...existingAttrs, ...newAttrs }
-      await supabase.from('places').update({ attributes: merged }).eq('id', exactMatch.id).eq('household_id', householdId)
-    }
     return { place_id: exactMatch.id, location_description: locationDescription, confidence: 'high' }
   }
 
@@ -243,7 +228,6 @@ export async function resolveOrCreatePlace(
       type: segment.type ?? 'place',
       label: segment.label ?? 'unknown',
       parent_place_id: parentId,
-      attributes: segment.attributes ?? {},
       canonical_key: canonicalKey,
       sort_order: sortOrder,
     }
@@ -257,7 +241,6 @@ export async function resolveOrCreatePlace(
         id: created.id,
         canonical_key: canonicalKey,
         label: segment.label,
-        attributes: segment.attributes,
         parent_place_id: parentId,
       })
       parentId = created.id
@@ -273,7 +256,6 @@ export async function resolveOrCreatePlace(
           id: existingRow.id,
           canonical_key: canonicalKey,
           label: segment.label,
-          attributes: segment.attributes,
           parent_place_id: parentId,
         })
         parentId = existingRow.id
