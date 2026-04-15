@@ -24,11 +24,7 @@ export function useProfile(userId: string | undefined) {
   )
 
   useEffect(() => {
-    if (!userId) {
-      setProfile(null)
-      setLoading(false)
-      return
-    }
+    if (!userId) return
 
     let cancelled = false
 
@@ -67,7 +63,7 @@ export function useProfile(userId: string | undefined) {
       }
     }
 
-    setLoading(true)
+    setLoading(true) // eslint-disable-line react-hooks/set-state-in-effect
     fetchOrCreate()
     return () => {
       cancelled = true

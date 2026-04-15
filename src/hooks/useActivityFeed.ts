@@ -108,14 +108,10 @@ export function useActivityFeed({
 
   // Reset and fetch first page when filters change
   useEffect(() => {
-    if (!householdId) {
-      setActivities([])
-      setHasMore(false)
-      return
-    }
+    if (!householdId) return
 
     let cancelled = false
-    setLoading(true)
+    setLoading(true) // eslint-disable-line react-hooks/set-state-in-effect
     cursorRef.current = null
 
     fetchPage(null).then((rows) => {

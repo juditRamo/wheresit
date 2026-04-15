@@ -49,7 +49,6 @@ const corsHeaders = {
 }
 
 // Concept/place/utils logic moved to concepts.ts, places.ts, utils.ts
-type Lang = 'en' | 'es'
 
 /** Single item result returned to client for display in search/location query UI. */
 interface QueryResult {
@@ -170,7 +169,7 @@ Deno.serve(async (req) => {
         normalized = await normalizeLocationViaLLM(locDesc, geminiKey)
       }
       if (!normalized) {
-        const simpleKey = locDesc.toLowerCase().replace(/\s+/g, '_').replace(/^(the|el|la|los|las)\_?/, '')
+        const simpleKey = locDesc.toLowerCase().replace(/\s+/g, '_').replace(/^(the|el|la|los|las)_?/, '')
         normalized = {
           location_path: [{ type: 'furniture', label: simpleKey }],
           canonical_key: `furniture:${simpleKey}`,

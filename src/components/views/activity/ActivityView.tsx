@@ -61,8 +61,21 @@ export function ActivityView({ householdId, onNavigateToEntity }: ActivityViewPr
     return () => { cancelled = true }
   }, [actorIds])
 
-  // Fetch place icons for place events
-  const [placeIcons, setPlaceIcons] = useState<Record<string, string>>({})
+  // Extract place icons from add_place payloads (derived, no effect needed)
+  const payloadPlaceIcons = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const g of grouped) {
+      for (const e of g.entries) {
+        if (e.event_type === 'add_place' && e.payload.icon) {
+          map[e.entity_id] = e.payload.icon as string
+        }
+      }
+    }
+    return map
+  }, [grouped])
+
+  // Fetch remaining place icons from DB
+  const [dbPlaceIcons, setDbPlaceIcons] = useState<Record<string, string>>({})
   const placeEntityIds = useMemo(() => {
     const ids = new Set<string>()
     for (const g of grouped) {
@@ -74,25 +87,9 @@ export function ActivityView({ householdId, onNavigateToEntity }: ActivityViewPr
   }, [grouped])
 
   useEffect(() => {
-    if (placeEntityIds.length === 0) return
+    const missingIds = placeEntityIds.filter((id) => !payloadPlaceIcons[id])
+    if (missingIds.length === 0) return
     let cancelled = false
-
-    // First, extract icons from add_place payloads (they include the icon field)
-    const fromPayloads: Record<string, string> = {}
-    for (const g of grouped) {
-      for (const e of g.entries) {
-        if (e.event_type === 'add_place' && e.payload.icon) {
-          fromPayloads[e.entity_id] = e.payload.icon as string
-        }
-      }
-    }
-
-    // Fetch remaining from places table
-    const missingIds = placeEntityIds.filter((id) => !fromPayloads[id])
-    if (missingIds.length === 0) {
-      if (!cancelled) setPlaceIcons((prev) => ({ ...prev, ...fromPayloads }))
-      return
-    }
 
     supabase
       .from('places')
@@ -101,14 +98,16 @@ export function ActivityView({ householdId, onNavigateToEntity }: ActivityViewPr
       .then(({ data, error }) => {
         if (cancelled) return
         if (error) { console.error('Failed to fetch place icons:', error); return }
-        const map: Record<string, string> = { ...fromPayloads }
+        const map: Record<string, string> = {}
         for (const p of data ?? []) {
           if (p.icon) map[p.id] = p.icon
         }
-        setPlaceIcons((prev) => ({ ...prev, ...map }))
+        setDbPlaceIcons((prev) => ({ ...prev, ...map }))
       })
     return () => { cancelled = true }
-  }, [placeEntityIds, grouped])
+  }, [placeEntityIds, payloadPlaceIcons])
+
+  const placeIcons = useMemo(() => ({ ...payloadPlaceIcons, ...dbPlaceIcons }), [payloadPlaceIcons, dbPlaceIcons])
 
   // Collect IDs of deleted entities (events with delete_* type)
   const deletedEntityIds = useMemo(() => {

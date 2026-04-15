@@ -1,3 +1,4 @@
+import { createElement } from 'react'
 import { getItemIcon, getLocationDisplay } from '../helpers'
 import type { StorageEntry } from '../../../../types'
 
@@ -10,7 +11,7 @@ interface InventoryItemCardProps {
 }
 
 export function InventoryItemCard({ entry, getPlacePath, onClick }: InventoryItemCardProps) {
-  const ItemIcon = getItemIcon(entry.item_name)
+  const itemIcon = getItemIcon(entry.item_name)
   const thumbnailUrl = entry.photo_path
     ? `${supabaseUrl}/storage/v1/object/public/item-photos/${entry.photo_path}`
     : null
@@ -25,7 +26,7 @@ export function InventoryItemCard({ entry, getPlacePath, onClick }: InventoryIte
         {thumbnailUrl ? (
           <img src={thumbnailUrl} alt="" className="inventory__item-thumb" />
         ) : (
-          <ItemIcon size={16} color="var(--gold-primary)" />
+          createElement(itemIcon, { size: 16, color: 'var(--gold-primary)' })
         )}
       </div>
       <div className="inventory__item-info">

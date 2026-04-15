@@ -7,7 +7,7 @@ const CustomFieldsContext = createContext<CustomFieldsContextValue | null>(null)
 
 export function CustomFieldsProvider({ householdId, children }: { householdId: string; children: ReactNode }) {
   const cf = useCustomFields(householdId)
-  const value = useMemo(() => cf, [
+  const value = useMemo(() => cf, [ // eslint-disable-line react-hooks/exhaustive-deps
     cf.fields, cf.values, cf.valuesByEntry, cf.optionLabelMap,
     cf.getEntryValues, cf.saveEntryValues, cf.saveFormValues,
     cf.createField, cf.updateField, cf.deleteField, cf.reorderFields,
@@ -17,6 +17,7 @@ export function CustomFieldsProvider({ householdId, children }: { householdId: s
   return <CustomFieldsContext.Provider value={value}>{children}</CustomFieldsContext.Provider>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useCustomFieldsContext(): CustomFieldsContextValue {
   const ctx = useContext(CustomFieldsContext)
   if (!ctx) throw new Error('useCustomFieldsContext must be used within CustomFieldsProvider')

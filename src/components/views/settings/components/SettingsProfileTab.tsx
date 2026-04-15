@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { LogOut, Pencil } from 'lucide-react'
 import { supabase } from '../../../../supabaseClient'
 import { useLanguage } from '../../../../i18n/LanguageContext'
@@ -27,10 +27,11 @@ export function SettingsProfileTab({ user, profile, updateProfile }: SettingsPro
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordStatus, setPasswordStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [passwordError, setPasswordError] = useState<string | null>(null)
-
-  useEffect(() => {
+  const [prevDisplayName, setPrevDisplayName] = useState(profile?.display_name)
+  if (prevDisplayName !== profile?.display_name) {
+    setPrevDisplayName(profile?.display_name)
     setDisplayName(profile?.display_name ?? '')
-  }, [profile?.display_name])
+  }
 
   const handleThemeChange = (mode: 'light' | 'dark' | 'system') => {
     setTheme(mode)

@@ -22,11 +22,8 @@ export function useStorageEntries(householdId: string | null) {
   }, [householdId])
 
   useEffect(() => {
-    if (!householdId) {
-      setEntries([])
-      return
-    }
-    refetch()
+    if (!householdId) return
+    refetch() // eslint-disable-line react-hooks/set-state-in-effect
   }, [householdId, refetch])
 
   // When place_id is set, the DB derives location_description from the place hierarchy (see sync_storage_entry_location_description trigger).

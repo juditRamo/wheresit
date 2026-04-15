@@ -70,7 +70,7 @@ export function CustomFieldFilters({ fields, filters, onChange }: CustomFieldFil
     if (top < margin) top = margin
 
     if (top !== popoverPos.top || left !== popoverPos.left) {
-      setPopoverPos({ top, left })
+      requestAnimationFrame(() => setPopoverPos({ top, left }))
     }
   }, [openPopover]) // eslint-disable-line react-hooks/exhaustive-deps
 

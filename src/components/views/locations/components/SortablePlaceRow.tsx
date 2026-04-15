@@ -1,3 +1,4 @@
+import { createElement } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { ChevronRight, GripVertical, MoreHorizontal } from 'lucide-react'
@@ -31,7 +32,7 @@ export function SortablePlaceRow({ place, itemCount, onDrillIn, onActions }: Sor
     opacity: isDragging ? 0.4 : undefined,
   }
 
-  const TypeIcon = getPlaceIcon(place.icon)
+  const typeIcon = getPlaceIcon(place.icon)
   const hasChildren = place.children.length > 0
 
   return (
@@ -52,7 +53,7 @@ export function SortablePlaceRow({ place, itemCount, onDrillIn, onActions }: Sor
         <GripVertical size={16} />
       </button>
       <span className="locations-view__type-icon">
-        <TypeIcon size={18} color="var(--gold-primary)" />
+        {createElement(typeIcon, { size: 18, color: 'var(--gold-primary)' })}
       </span>
       <div className="locations-view__info">
         <div className="locations-view__info-text">
@@ -87,7 +88,7 @@ export function SortablePlaceRow({ place, itemCount, onDrillIn, onActions }: Sor
 /** Static version for DragOverlay (no sortable hooks). */
 export function PlaceRowOverlay({ place, itemCount }: { place: PlaceWithChildren; itemCount: number }) {
   const { language } = useLanguage()
-  const TypeIcon = getPlaceIcon(place.icon)
+  const typeIcon = getPlaceIcon(place.icon)
   const hasChildren = place.children.length > 0
 
   return (
@@ -96,7 +97,7 @@ export function PlaceRowOverlay({ place, itemCount }: { place: PlaceWithChildren
         <GripVertical size={16} />
       </span>
       <span className="locations-view__type-icon">
-        <TypeIcon size={18} color="var(--gold-primary)" />
+        {createElement(typeIcon, { size: 18, color: 'var(--gold-primary)' })}
       </span>
       <div className="locations-view__info">
         <div className="locations-view__info-text">

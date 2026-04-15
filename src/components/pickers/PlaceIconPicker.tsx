@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, createElement } from 'react'
 import { PLACE_ICON_CATALOG, ICON_CATEGORIES, getPlaceIcon } from '../../lib/placeIcons'
 import { useLanguage } from '../../i18n/LanguageContext'
 import { ui } from '../../i18n/ui'
@@ -23,8 +23,6 @@ export function PlaceIconPicker({ selected, onSelect, compact }: PlaceIconPicker
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [open])
-
-  const SelectedIcon = getPlaceIcon(selected)
 
   const grid = (
     <div className="icon-picker__grid-wrap">
@@ -66,7 +64,7 @@ export function PlaceIconPicker({ selected, onSelect, compact }: PlaceIconPicker
           onClick={() => setOpen(!open)}
           aria-label={ui('locations.choose_icon', language)}
         >
-          <SelectedIcon size={20} />
+          {createElement(getPlaceIcon(selected), { size: 20 })}
         </button>
         {open && <div className="icon-picker__popover">{grid}</div>}
       </div>

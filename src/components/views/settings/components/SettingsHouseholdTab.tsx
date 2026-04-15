@@ -44,10 +44,11 @@ export function SettingsHouseholdTab({ user, household, households, selectedId, 
   const [householdName, setHouseholdName] = useState(household.name)
   const [householdNameSaveStatus, setHouseholdNameSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [addHouseholdOpen, setAddHouseholdOpen] = useState(false)
-
-  useEffect(() => {
+  const [prevHouseholdName, setPrevHouseholdName] = useState(household.name)
+  if (prevHouseholdName !== household.name) {
+    setPrevHouseholdName(household.name)
     setHouseholdName(household.name)
-  }, [household.name])
+  }
 
   useEffect(() => {
     let cancelled = false

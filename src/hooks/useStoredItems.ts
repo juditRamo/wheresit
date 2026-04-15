@@ -24,11 +24,8 @@ export function useStoredItems(householdId: string | null) {
   }, [householdId])
 
   useEffect(() => {
-    if (!householdId) {
-      setItems([])
-      return
-    }
-    refetch()
+    if (!householdId) return
+    refetch() // eslint-disable-line react-hooks/set-state-in-effect
   }, [householdId, refetch])
 
   return { items, loading, refetch }

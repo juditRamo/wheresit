@@ -1,3 +1,4 @@
+import { createElement } from 'react'
 import { Package, Plus, ArrowRight, Pencil, X, type LucideIcon } from 'lucide-react'
 import type { ActivityEntry } from '../../../../hooks/useActivityFeed'
 import { getPlaceIcon } from '../../../../lib/placeIcons'
@@ -123,8 +124,8 @@ export function ActivityEventRow({
   const isEdit = entry.event_type === 'edit_object' || entry.event_type === 'edit_place'
 
   const isPlace = entry.entity_type === 'place'
-  const EntityIcon = isPlace ? getPlaceIcon(placeIconId ?? 'map-pin') : Package
-  const BadgeIcon = ACTION_BADGE_ICON[entry.event_type] ?? Plus
+  const entityIcon = isPlace ? getPlaceIcon(placeIconId ?? 'map-pin') : Package
+  const badgeIcon = ACTION_BADGE_ICON[entry.event_type] ?? Plus
 
   return (
     <div
@@ -135,8 +136,8 @@ export function ActivityEventRow({
       onKeyDown={disabled ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onTap() } }}
     >
       <div className="activity-view__icon-bubble">
-        <EntityIcon size={18} className="activity-view__icon-bubble-icon" />
-        <span className="activity-view__action-badge"><BadgeIcon size={10} /></span>
+        {createElement(entityIcon, { size: 18, className: 'activity-view__icon-bubble-icon' })}
+        <span className="activity-view__action-badge">{createElement(badgeIcon, { size: 10 })}</span>
       </div>
       <div className="activity-view__row-body">
         <div className="activity-view__row-text">

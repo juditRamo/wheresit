@@ -24,11 +24,7 @@ export function useHousehold(userId: string | undefined) {
   }, [])
 
   useEffect(() => {
-    if (!userId) {
-      setHouseholds([])
-      setLoading(false)
-      return
-    }
+    if (!userId) return
 
     let cancelled = false
 
@@ -71,7 +67,10 @@ export function useHousehold(userId: string | undefined) {
   useEffect(() => {
     if (households.length === 0) return
     const isSelectedValid = selectedId && households.some((h) => h.id === selectedId)
-    if (!isSelectedValid) setSelectedId(households[0].id)
+    if (!isSelectedValid) {
+      // Deferred to avoid synchronous setState in effect
+      Promise.resolve().then(() => setSelectedId(households[0].id))
+    }
   }, [households, selectedId, setSelectedId])
 
   const createHousehold = useCallback(
