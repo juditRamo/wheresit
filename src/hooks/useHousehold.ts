@@ -7,13 +7,15 @@ const HOUSEHOLD_STORAGE_KEY = 'wheresit_household_id'
 
 export function useHousehold(userId: string | undefined) {
   const [households, setHouseholds] = useState<Household[]>([])
-  const [loading, setLoading] = useState(true)
+  const [fetchDone, setFetchDone] = useState(false)
+  const [storageLoaded, setStorageLoaded] = useState(false)
   const [selectedId, setSelectedIdState] = useState<string | null>(null)
 
   // Load persisted household ID asynchronously
   useEffect(() => {
     getItem(HOUSEHOLD_STORAGE_KEY).then((id) => {
       if (id) setSelectedIdState(id)
+      setStorageLoaded(true)
     })
   }, [])
 
@@ -37,7 +39,7 @@ export function useHousehold(userId: string | undefined) {
       if (membersError || !members?.length) {
         if (!cancelled) {
           setHouseholds([])
-          setLoading(false)
+          setFetchDone(true)
         }
         return
       }
@@ -52,7 +54,7 @@ export function useHousehold(userId: string | undefined) {
       if (!cancelled) {
         if (error) setHouseholds([])
         else setHouseholds(list ?? [])
-        setLoading(false)
+        setFetchDone(true)
       }
     }
 
@@ -64,14 +66,16 @@ export function useHousehold(userId: string | undefined) {
 
   const selectedHousehold = households.find((h) => h.id === selectedId) ?? null
 
+  // Auto-select first household if none selected (runs after both storage and fetch are done)
   useEffect(() => {
-    if (households.length === 0) return
+    if (!storageLoaded || !fetchDone || households.length === 0) return
     const isSelectedValid = selectedId && households.some((h) => h.id === selectedId)
     if (!isSelectedValid) {
-      // Deferred to avoid synchronous setState in effect
-      Promise.resolve().then(() => setSelectedId(households[0].id))
+      setSelectedId(households[0].id) // eslint-disable-line react-hooks/set-state-in-effect
     }
-  }, [households, selectedId, setSelectedId])
+  }, [households, selectedId, storageLoaded, fetchDone, setSelectedId])
+
+  const loading = !fetchDone || !storageLoaded
 
   const createHousehold = useCallback(
     async (name: string) => {
