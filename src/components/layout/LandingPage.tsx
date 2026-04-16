@@ -18,7 +18,12 @@ const themeCycle: Record<ThemeMode, ThemeMode> = {
   system: 'light',
 }
 
-export function LandingPage() {
+interface LandingPageProps {
+  recoveryMode?: boolean
+  onRecoveryComplete?: () => void
+}
+
+export function LandingPage({ recoveryMode, onRecoveryComplete }: LandingPageProps = {}) {
   const { language, setLanguage } = useLanguage()
   const { theme, setTheme } = useTheme()
 
@@ -65,7 +70,7 @@ export function LandingPage() {
           </button>
         </div>
         <div className="landing__auth">
-          <Auth />
+          <Auth recoveryMode={recoveryMode} onRecoveryComplete={onRecoveryComplete} />
         </div>
       </div>
     </div>

@@ -258,6 +258,16 @@ const strings: Record<string, { en: string; es: string }> = {
   // Auth extras
   'auth.hide_password': { en: 'Hide password', es: 'Ocultar contraseña' },
   'auth.show_password': { en: 'Show password', es: 'Mostrar contraseña' },
+  'auth.forgot_password': { en: 'Forgot password?', es: '¿Olvidaste tu contraseña?' },
+  'auth.reset_title': { en: 'Reset Password', es: 'Restablecer contraseña' },
+  'auth.reset_subtitle': { en: 'Enter your email and we\'ll send you a reset link.', es: 'Introduce tu correo y te enviaremos un enlace para restablecer.' },
+  'auth.send_reset': { en: 'Send reset link', es: 'Enviar enlace' },
+  'auth.reset_sent': { en: 'Check your email for the reset link.', es: 'Revisa tu correo para el enlace de restablecimiento.' },
+  'auth.back_to_signin': { en: 'Back to sign in', es: 'Volver a iniciar sesión' },
+  'auth.new_password_title': { en: 'Set New Password', es: 'Establecer nueva contraseña' },
+  'auth.new_password_subtitle': { en: 'Enter your new password below.', es: 'Introduce tu nueva contraseña a continuación.' },
+  'auth.password_confirm': { en: 'Confirm password', es: 'Confirmar contraseña' },
+  'auth.password_updated': { en: 'Password updated. You are now signed in.', es: 'Contraseña actualizada. Ya has iniciado sesión.' },
 
   // Landing extras
   'landing.toggle_theme': { en: 'Toggle theme', es: 'Cambiar tema' },

@@ -23,7 +23,7 @@ import type { LocationRef, HistoryEntityType } from './types'
 import './App.css'
 
 function AppInner() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, isRecovery, clearRecovery } = useAuth()
   const {
     households,
     selectedId,
@@ -84,6 +84,10 @@ function AppInner() {
 
   if (!user) {
     return <LandingPage />
+  }
+
+  if (isRecovery) {
+    return <LandingPage recoveryMode onRecoveryComplete={clearRecovery} />
   }
 
   const needsHousehold = !householdLoading && households.length === 0
